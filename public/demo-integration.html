@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo App - Health Data Integration</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .demo-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .demo-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .demo-logo {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .demo-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .demo-subtitle {
+      font-size: 16px;
+      color: #6b7280;
+    }
+
+    .demo-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      margin-bottom: 24px;
+    }
+
+    .demo-card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 16px;
+    }
+
+    .demo-card p {
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .connect-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .connect-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .connect-button:active {
+      transform: translateY(0);
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .status-indicator.connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9ca3af;
+    }
+
+    .status-indicator.connected .status-dot {
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .code-block {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
+    .code-comment {
+      color: #9ca3af;
+    }
+
+    .code-string {
+      color: #10b981;
+    }
+
+    .code-keyword {
+      color: #8b5cf6;
+    }
+
+    .code-function {
+      color: #3b82f6;
+    }
+
+    /* Widget overlay */
+    .widget-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .widget-overlay.active {
+      display: flex;
+    }
+
+    .widget-iframe {
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .integration-info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .integration-info strong {
+      color: #1e40af;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .integration-info p {
+      color: #1e3a8a;
+      font-size: 14px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <div class="demo-header">
+      <div class="demo-logo">🏥</div>
+      <h1 class="demo-title">My Health App</h1>
+      <p class="demo-subtitle">Example app using HealthConnect API</p>
+    </div>
+
+    <div class="demo-card">
+      <h2>Connect Your Health Records</h2>
+      <p>
+        This is a demo of how other health apps would integrate with our "Plaid-style" API.
+        Click the button below to connect your health records from any of 10+ providers.
+      </p>
+
+      <button class="connect-button" onclick="openConnectWidget()">
+        <span>🔗</span>
+        <span>Connect Health Records</span>
+      </button>
+
+      <div class="status-indicator" id="statusIndicator">
+        <div class="status-dot"></div>
+        <span id="statusText">Not connected</span>
+      </div>
+
+      <div class="integration-info">
+        <strong>For Developers:</strong>
+        <p>This widget is embeddable with just 5 lines of code. Our API handles all OAuth flows, FHIR integrations, and data normalization.</p>
+      </div>
+    </div>
+
+    <div class="demo-card">
+      <h2>How to Integrate (Developer View)</h2>
+      <p>Add this to your app to enable health data connections:</p>
+
+      <div class="code-block"><span class="code-comment">// 1. Include our SDK</span>
+<span class="code-keyword">&lt;script</span> <span class="code-string">src="https://cdn.healthconnect.com/v1/connect.js"</span><span class="code-keyword">&gt;&lt;/script&gt;</span>
+
+<span class="code-comment">// 2. Initialize with your API key</span>
+<span class="code-keyword">const</span> healthConnect = <span class="code-function">HealthConnect</span>(<span class="code-string">'pk_test_abc123'</span>);
+
+<span class="code-comment">// 3. Open the Connect widget</span>
+<span class="code-keyword">const</span> handler = healthConnect.<span class="code-function">create</span>({
+  <span class="code-function">onSuccess</span>: <span class="code-keyword">function</span>(connection) {
+    <span class="code-comment">// User connected their health records!</span>
+    console.<span class="code-function">log</span>(<span class="code-string">'Connection ID:'</span>, connection.id);
+
+    <span class="code-comment">// Fetch their health data</span>
+    <span class="code-function">fetchHealthData</span>(connection.id);
+  },
+  <span class="code-function">onExit</span>: <span class="code-keyword">function</span>() {
+    console.<span class="code-function">log</span>(<span class="code-string">'User closed widget'</span>);
+  }
+});
+
+handler.<span class="code-function">open</span>();</div>
+    </div>
+
+    <div class="demo-card">
+      <h2>What You Get</h2>
+      <p>Once users connect, you get access to:</p>
+      <ul style="color: #6b7280; line-height: 2; margin-left: 20px;">
+        <li>✅ <strong>Patient Demographics</strong> - Name, DOB, gender, contact info</li>
+        <li>✅ <strong>Medical History</strong> - Conditions, diagnoses, procedures</li>
+        <li>✅ <strong>Medications</strong> - Current prescriptions and dosages</li>
+        <li>✅ <strong>Lab Results</strong> - Blood work, A1C, cholesterol, etc.</li>
+        <li>✅ <strong>Encounters</strong> - Appointment history and provider notes</li>
+        <li>✅ <strong>Insurance Data</strong> - Coverage, claims (from payers)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Connect Widget Overlay -->
+  <div class="widget-overlay" id="widgetOverlay" onclick="closeWidget(event)">
+    <iframe id="widgetIframe" class="widget-iframe" src=""></iframe>
+  </div>
+
+  <script>
+    function openConnectWidget() {
+      const overlay = document.getElementById('widgetOverlay');
+      const iframe = document.getElementById('widgetIframe');
+
+      iframe.src = '/connect-widget.html';
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeWidget(event) {
+      // Only close if clicking the overlay
+      if (event && event.target.id !== 'widgetOverlay') {
+        return;
+      }
+
+      const overlay = document.getElementById('widgetOverlay');
+      const iframe = document.getElementById('widgetIframe');
+
+      overlay.classList.remove('active');
+      iframe.src = '';
+      document.body.style.overflow = '';
+    }
+
+    // Listen for messages from widget
+    window.addEventListener('message', function(event) {
+      if (event.data.type === 'CLOSE_WIDGET') {
+        closeWidget();
+      } else if (event.data.type === 'PROVIDER_SELECTED') {
+        // In production, this would call your backend API
+        console.log('Provider selected:', event.data.provider);
+
+        // Simulate successful connection
+        document.getElementById('statusIndicator').classList.add('connected');
+        document.getElementById('statusText').textContent = 'Connected to ' + event.data.provider;
+
+        // Close widget
+        closeWidget();
+
+        // In production, you'd redirect to OAuth flow or call backend
+        alert('In production: User would complete OAuth flow for ' + event.data.provider);
+      }
+    });
+
+    // Listen for ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('widgetOverlay').classList.contains('active')) {
+        closeWidget();
+      }
+    });
+  </script>
+</body>
+</html>

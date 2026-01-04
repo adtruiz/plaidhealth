@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Health Records - Unified View</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      color: #667eea;
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .connections-summary {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .connection-badge {
+      background: #f0f4ff;
+      color: #667eea;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 2px solid #667eea;
+    }
+
+    .back-button {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 15px;
+      transition: background 0.3s;
+    }
+
+    .back-button:hover {
+      background: #5568d3;
+    }
+
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .section h2 {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section h2 .count {
+      font-size: 16px;
+      color: #667eea;
+      font-weight: normal;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      padding: 40px;
+      font-size: 18px;
+    }
+
+    .error {
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .patient-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .info-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .info-card strong {
+      display: block;
+      color: #667eea;
+      margin-bottom: 5px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-card span {
+      color: #333;
+      font-size: 16px;
+    }
+
+    .list-item {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .list-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .list-item h3 {
+      color: #333;
+      font-size: 18px;
+      margin-bottom: 8px;
+      padding-right: 120px;
+    }
+
+    .list-item p {
+      color: #666;
+      font-size: 14px;
+      margin: 4px 0;
+    }
+
+    .source-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #e0e7ff;
+      color: #667eea;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .badge.active {
+      background: #10b981;
+    }
+
+    .badge.inactive {
+      background: #9ca3af;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 40px;
+      font-style: italic;
+    }
+
+    .lab-result {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+      position: relative;
+    }
+
+    .lab-result .lab-name {
+      font-weight: 600;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .lab-result .lab-value {
+      font-weight: bold;
+      color: #667eea;
+      font-size: 18px;
+      margin-right: 120px;
+    }
+
+    .lab-result .lab-date {
+      color: #999;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      font-size: 36px;
+      margin-bottom: 5px;
+    }
+
+    .stat-card p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+
+      .header, .section {
+        padding: 20px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .patient-info, .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .list-item h3 {
+        padding-right: 0;
+        margin-bottom: 30px;
+      }
+
+      .source-badge {
+        top: auto;
+        bottom: 15px;
+        right: 15px;
+      }
+
+      .lab-result .lab-value {
+        margin-right: 0;
+      }
+    }
+    .chart-container {
+      position: relative;
+      height: 400px;
+      margin-top: 20px;
+    }
+
+    .timeline-container {
+      position: relative;
+      padding: 20px 0;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .timeline-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #667eea;
+      flex-shrink: 0;
+      margin-top: 5px;
+      z-index: 2;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px #667eea;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 7px;
+      top: 20px;
+      bottom: -20px;
+      width: 2px;
+      background: #e5e7eb;
+    }
+
+    .timeline-content {
+      flex: 1;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 3px solid #667eea;
+    }
+
+    .timeline-date {
+      color: #667eea;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .timeline-title {
+      color: #333;
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .timeline-desc {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .toggle-btn {
+      background: #f3f4f6;
+      color: #6b7280;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .toggle-btn:hover {
+      background: #5568d3;
+      color: white;
+    }
+  </style>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏥 All Health Records - Unified View</h1>
+      <p id="headerDescription">Loading your health data from all connected sources...</p>
+      <div id="connectionsSummary" class="connections-summary"></div>
+      <a href="/my-dashboard.html" class="back-button">← Back to Dashboard</a>
+    </div>
+
+    <div id="errorContainer"></div>
+
+    <!-- Stats Overview (MOVED TO TOP) -->
+    <div id="statsSection" class="section" style="display: none;">
+      <h2>📊 Overview</h2>
+      <div class="stats-row" id="statsRow"></div>
+    </div>
+
+    <!-- Patient Demographics -->
+    <div class="section">
+      <h2>👤 Patient Information</h2>
+      <div id="patientInfo">
+        <div class="loading">Loading patient information...</div>
+      </div>
+    </div>
+
+    <!-- Lab Trends Chart -->
+    <div id="labTrendsSection" class="section" style="display: none;">
+      <h2>📈 Lab Results Trends</h2>
+      <div class="view-toggle">
+        <button class="toggle-btn active" onclick="showAllLabCharts()">All Labs</button>
+        <button class="toggle-btn" onclick="showTopLabCharts()">Top 5 Most Common</button>
+      </div>
+      <div class="chart-container">
+        <canvas id="labTrendsChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Medication Timeline -->
+    <div id="medTimelineSection" class="section" style="display: none;">
+      <h2>💊 Medication Timeline</h2>
+      <div class="chart-container">
+        <canvas id="medTimelineChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Medications -->
+    <div class="section">
+      <h2>
+        <span>💊 Medications</span>
+        <span class="count" id="medsCount"></span>
+      </h2>
+      <div id="medicationsInfo">
+        <div class="loading">Loading medications...</div>
+      </div>
+    </div>
+
+    <!-- Conditions -->
+    <div class="section">
+      <h2>
+        <span>🩺 Conditions & Diagnoses</span>
+        <span class="count" id="conditionsCount"></span>
+      </h2>
+      <div id="conditionsInfo">
+        <div class="loading">Loading conditions...</div>
+      </div>
+    </div>
+
+    <!-- Lab Results -->
+    <div class="section">
+      <h2>
+        <span>🧪 Lab Results</span>
+        <span class="count" id="labsCount"></span>
+      </h2>
+      <div id="labsInfo">
+        <div class="loading">Loading lab results...</div>
+      </div>
+    </div>
+
+    <!-- Encounters -->
+    <div class="section">
+      <h2>
+        <span>🏥 Encounters & Visits</span>
+        <span class="count" id="encountersCount"></span>
+      </h2>
+      <div id="encountersInfo">
+        <div class="loading">Loading encounters...</div>
+      </div>
+    </div>
+
+    <!-- Health Timeline (MOVED TO BOTTOM) -->
+    <div id="timelineSection" class="section" style="display: none;">
+      <h2>📅 Health Timeline - Combined View</h2>
+      <div class="timeline-container" id="healthTimeline"></div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables for charts and data
+    let labTrendsChart = null;
+    let medTimelineChart = null;
+    let healthData = null;
+
+    // Load all unified health data
+    loadUnifiedHealthRecords();
+
+    function showError(message) {
+      const errorContainer = document.getElementById('errorContainer');
+      errorContainer.innerHTML = `<div class="error">❌ ${message}</div>`;
+    }
+
+    async function loadUnifiedHealthRecords() {
+      try {
+        const response = await fetch('/api/health-records/unified');
+
+        if (!response.ok) {
+          throw new Error('Failed to load health records');
+        }
+
+        const data = await response.json();
+        healthData = data; // Store globally for chart functions
+
+        // Update header
+        const connectionCount = data.connections.length;
+        document.getElementById('headerDescription').textContent =
+          `Aggregated data from ${connectionCount} health record ${connectionCount === 1 ? 'source' : 'sources'}`;
+
+        // Display connection badges (unique sources only)
+        const uniqueSources = [...new Set(data.connections.map(conn => conn.source))];
+        const summaryHtml = uniqueSources.map(source =>
+          `<div class="connection-badge">${source}</div>`
+        ).join('');
+        document.getElementById('connectionsSummary').innerHTML = summaryHtml;
+
+        // Display stats
+        displayStats(data);
+
+        // Display visualizations (these now fetch data from APIs)
+        displayLabTrendsChart();
+        displayHealthTimeline();
+        displayMedicationTimeline();
+
+        // Display all sections
+        displayPatients(data.patients);
+
+        // Use deduplicated data if available (multiple connections)
+        if (data.deduplicated && data.connections.length > 1) {
+          displayMedicationsDeduplicated(data.deduplicated.medications);
+          displayConditionsDeduplicated(data.deduplicated.conditions);
+          displayLabsDeduplicated(data.deduplicated.labs);
+          displayEncountersDeduplicated(data.deduplicated.encounters);
+        } else {
+          // Single connection - show raw data
+          displayMedications(data.medications);
+          displayConditions(data.conditions);
+          displayLabs(data.labs);
+          displayEncounters(data.encounters);
+        }
+
+      } catch (error) {
+        console.error('Error loading unified health records:', error);
+        showError('Failed to load your health records. Please try again later.');
+      }
+    }
+
+    function displayStats(data) {
+      const statsHtml = `
+        <div class="stat-card">
+          <h3>${data.connections.length}</h3>
+          <p>Connected Sources</p>
+        </div>
+        <div class="stat-card">
+          <h3>${data.medications.length}</h3>
+          <p>Medications</p>
+        </div>
+        <div class="stat-card">
+          <h3>${data.conditions.length}</h3>
+          <p>Conditions</p>
+        </div>
+        <div class="stat-card">
+          <h3>${data.labs.length}</h3>
+          <p>Lab Results</p>
+        </div>
+        <div class="stat-card">
+          <h3>${data.encounters.length}</h3>
+          <p>Encounters</p>
+        </div>
+      `;
+      document.getElementById('statsRow').innerHTML = statsHtml;
+      document.getElementById('statsSection').style.display = 'block';
+    }
+
+    function displayPatients(patients) {
+      const container = document.getElementById('patientInfo');
+
+      if (!patients || patients.length === 0) {
+        container.innerHTML = '<div class="empty-state">No patient information available</div>';
+        return;
+      }
+
+      // Display all connected patients
+      const patientsHtml = patients.map(patient => {
+        const name = patient.name?.[0];
+        const fullName = name ? `${name.given?.join(' ')} ${name.family}` : 'Unknown';
+        const birthDate = patient.birthDate || 'Unknown';
+        const gender = patient.gender || 'Unknown';
+        const source = patient._source.source;
+
+        return `
+          <div class="patient-info">
+            <div class="info-card">
+              <strong>Full Name</strong>
+              <span>${fullName}</span>
+            </div>
+            <div class="info-card">
+              <strong>Date of Birth</strong>
+              <span>${birthDate}</span>
+            </div>
+            <div class="info-card">
+              <strong>Gender</strong>
+              <span>${gender.charAt(0).toUpperCase() + gender.slice(1)}</span>
+            </div>
+            <div class="info-card">
+              <strong>Source</strong>
+              <span>${source}</span>
+            </div>
+          </div>
+        `;
+      }).join('<hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">');
+
+      container.innerHTML = patientsHtml;
+    }
+
+    function displayMedications(medications) {
+      const container = document.getElementById('medicationsInfo');
+      document.getElementById('medsCount').textContent = `${medications.length} total`;
+
+      if (!medications || medications.length === 0) {
+        container.innerHTML = '<div class="empty-state">No medications found</div>';
+        return;
+      }
+
+      // Sort by date (most recent first)
+      const sorted = medications.sort((a, b) => {
+        const dateA = a.authoredOn ? new Date(a.authoredOn) : new Date(0);
+        const dateB = b.authoredOn ? new Date(b.authoredOn) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const medicationsHtml = sorted.map(med => {
+        const medName = med.medicationCodeableConcept?.text ||
+                       med.medicationCodeableConcept?.coding?.[0]?.display ||
+                       'Unknown medication';
+        const status = med.status || 'unknown';
+        const authoredOn = med.authoredOn ? new Date(med.authoredOn).toLocaleDateString() : 'Unknown date';
+        const dosage = med.dosageInstruction?.[0]?.text || 'No dosage information';
+        const source = med._source.source;
+
+        return `
+          <div class="list-item">
+            <div class="source-badge">${source}</div>
+            <h3>${medName}</h3>
+            <p><strong>Dosage:</strong> ${dosage}</p>
+            <p><strong>Prescribed:</strong> ${authoredOn}</p>
+            <span class="badge ${status === 'active' ? 'active' : 'inactive'}">${status.toUpperCase()}</span>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = medicationsHtml;
+    }
+
+    function displayConditions(conditions) {
+      const container = document.getElementById('conditionsInfo');
+      document.getElementById('conditionsCount').textContent = `${conditions.length} total`;
+
+      if (!conditions || conditions.length === 0) {
+        container.innerHTML = '<div class="empty-state">No conditions found</div>';
+        return;
+      }
+
+      // Sort by onset date (most recent first)
+      const sorted = conditions.sort((a, b) => {
+        const dateA = a.onsetDateTime ? new Date(a.onsetDateTime) : new Date(0);
+        const dateB = b.onsetDateTime ? new Date(b.onsetDateTime) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const conditionsHtml = sorted.map(condition => {
+        const conditionName = condition.code?.text ||
+                             condition.code?.coding?.[0]?.display ||
+                             'Unknown condition';
+        const clinicalStatus = condition.clinicalStatus?.coding?.[0]?.code || 'unknown';
+        const onsetDate = condition.onsetDateTime ?
+                         new Date(condition.onsetDateTime).toLocaleDateString() :
+                         'Unknown date';
+        const source = condition._source.source;
+
+        return `
+          <div class="list-item">
+            <div class="source-badge">${source}</div>
+            <h3>${conditionName}</h3>
+            <p><strong>Onset:</strong> ${onsetDate}</p>
+            <span class="badge ${clinicalStatus === 'active' ? 'active' : 'inactive'}">${clinicalStatus.toUpperCase()}</span>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = conditionsHtml;
+    }
+
+    // DEDUPLICATED DISPLAY FUNCTIONS
+    function displayConditionsDeduplicated(conditionGroups) {
+      const container = document.getElementById('conditionsInfo');
+      const totalUnique = conditionGroups.length;
+      const totalRaw = conditionGroups.reduce((sum, g) => sum + 1 + g.duplicates.length, 0);
+      document.getElementById('conditionsCount').textContent = `${totalUnique} unique (${totalRaw} total, ${totalRaw - totalUnique} merged)`;
+
+      if (!conditionGroups || conditionGroups.length === 0) {
+        container.innerHTML = '<div class="empty-state">No conditions found</div>';
+        return;
+      }
+
+      // Sort groups by primary onset date (most recent first)
+      const sorted = conditionGroups.sort((a, b) => {
+        const dateA = a.primary.onsetDateTime ? new Date(a.primary.onsetDateTime) : new Date(0);
+        const dateB = b.primary.onsetDateTime ? new Date(b.primary.onsetDateTime) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const conditionsHtml = sorted.map(group => {
+        const condition = group.primary;
+        const conditionName = condition.code?.text ||
+                             condition.code?.coding?.[0]?.display ||
+                             'Unknown condition';
+        const clinicalStatus = condition.clinicalStatus?.coding?.[0]?.code || 'unknown';
+        const onsetDate = condition.onsetDateTime ?
+                         new Date(condition.onsetDateTime).toLocaleDateString() :
+                         'Unknown date';
+
+        // Show multiple sources if duplicates exist (unique names only)
+        const uniqueSources = [...new Set(group.sources.map(s => s.source))];
+        const sourcesList = uniqueSources.join(', ');
+        const hasDuplicates = group.duplicates.length > 0;
+
+        return `
+          <div class="list-item" style="${hasDuplicates ? 'border-left: 4px solid #10b981;' : ''}">
+            <div class="source-badge">${sourcesList}</div>
+            <h3>${conditionName}</h3>
+            <p><strong>Onset:</strong> ${onsetDate}</p>
+            <span class="badge ${clinicalStatus === 'active' ? 'active' : 'inactive'}">${clinicalStatus.toUpperCase()}</span>
+            ${hasDuplicates ? `<span class="badge" style="background: #10b981; margin-left: 8px;">✓ Merged from ${group.duplicates.length + 1} records</span>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = conditionsHtml;
+    }
+
+    function displayMedicationsDeduplicated(medicationGroups) {
+      const container = document.getElementById('medicationsInfo');
+      const totalUnique = medicationGroups.length;
+      const totalRaw = medicationGroups.reduce((sum, g) => sum + 1 + g.duplicates.length, 0);
+      document.getElementById('medsCount').textContent = `${totalUnique} unique (${totalRaw} total, ${totalRaw - totalUnique} merged)`;
+
+      if (!medicationGroups || medicationGroups.length === 0) {
+        container.innerHTML = '<div class="empty-state">No medications found</div>';
+        return;
+      }
+
+      // Sort groups by primary date (most recent first)
+      const sorted = medicationGroups.sort((a, b) => {
+        const dateA = a.primary.authoredOn ? new Date(a.primary.authoredOn) : new Date(0);
+        const dateB = b.primary.authoredOn ? new Date(b.primary.authoredOn) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const medicationsHtml = sorted.map(group => {
+        const med = group.primary;
+        const medName = med.medicationCodeableConcept?.text ||
+                       med.medicationCodeableConcept?.coding?.[0]?.display ||
+                       'Unknown medication';
+        const status = med.status || 'unknown';
+        const authoredOn = med.authoredOn ? new Date(med.authoredOn).toLocaleDateString() : 'Unknown date';
+        const dosage = med.dosageInstruction?.[0]?.text || 'No dosage information';
+
+        // Show multiple sources if duplicates exist (unique names only)
+        const uniqueSources = [...new Set(group.sources.map(s => s.source))];
+        const sourcesList = uniqueSources.join(', ');
+        const hasDuplicates = group.duplicates.length > 0;
+
+        return `
+          <div class="list-item" style="${hasDuplicates ? 'border-left: 4px solid #10b981;' : ''}">
+            <div class="source-badge">${sourcesList}</div>
+            <h3>${medName}</h3>
+            <p><strong>Dosage:</strong> ${dosage}</p>
+            <p><strong>Prescribed:</strong> ${authoredOn}</p>
+            <span class="badge ${status === 'active' ? 'active' : 'inactive'}">${status.toUpperCase()}</span>
+            ${hasDuplicates ? `<span class="badge" style="background: #10b981; margin-left: 8px;">✓ Merged from ${group.duplicates.length + 1} records</span>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = medicationsHtml;
+    }
+
+    function displayLabsDeduplicated(labGroups) {
+      const container = document.getElementById('labsInfo');
+
+      // Filter out labs with missing critical data (no name AND no value)
+      const validLabGroups = labGroups.filter(group => {
+        const lab = group.primary;
+        const hasName = lab.code?.text || lab.code?.coding?.[0]?.display;
+        const hasValue = lab.valueQuantity || lab.valueString;
+        // Keep labs that have at least a name OR a value
+        return hasName || hasValue;
+      });
+
+      const totalUnique = validLabGroups.length;
+      const totalRaw = validLabGroups.reduce((sum, g) => sum + 1 + g.duplicates.length, 0);
+      const filteredCount = labGroups.length - validLabGroups.length;
+
+      if (filteredCount > 0) {
+        document.getElementById('labsCount').textContent = `${totalUnique} unique (${totalRaw} total, ${totalRaw - totalUnique} merged, ${filteredCount} invalid filtered)`;
+      } else {
+        document.getElementById('labsCount').textContent = `${totalUnique} unique (${totalRaw} total, ${totalRaw - totalUnique} merged)`;
+      }
+
+      if (!validLabGroups || validLabGroups.length === 0) {
+        container.innerHTML = '<div class="empty-state">No valid lab results found</div>';
+        return;
+      }
+
+      // Sort groups by primary date (most recent first)
+      const sorted = validLabGroups.sort((a, b) => {
+        const dateA = a.primary.effectiveDateTime ? new Date(a.primary.effectiveDateTime) : new Date(0);
+        const dateB = b.primary.effectiveDateTime ? new Date(b.primary.effectiveDateTime) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const labsHtml = sorted.map(group => {
+        const lab = group.primary;
+        const labName = lab.code?.text ||
+                       lab.code?.coding?.[0]?.display ||
+                       'Unknown lab';
+        const value = lab.valueQuantity ?
+                     `${lab.valueQuantity.value} ${lab.valueQuantity.unit}` :
+                     lab.valueString || 'No value';
+        const date = lab.effectiveDateTime ?
+                    new Date(lab.effectiveDateTime).toLocaleDateString() :
+                    'Unknown date';
+
+        // Show multiple sources if duplicates exist (unique names only)
+        const uniqueSources = [...new Set(group.sources.map(s => s.source))];
+        const sourcesList = uniqueSources.join(', ');
+        const hasDuplicates = group.duplicates.length > 0;
+
+        return `
+          <div class="lab-result" style="${hasDuplicates ? 'border-left: 4px solid #10b981;' : ''}">
+            <div class="source-badge">${sourcesList}</div>
+            <div>
+              <div class="lab-name">${labName}</div>
+              <div class="lab-date">${date}</div>
+              ${hasDuplicates ? `<span class="badge" style="background: #10b981; margin-top: 4px;">✓ Merged from ${group.duplicates.length + 1} records</span>` : ''}
+            </div>
+            <div class="lab-value">${value}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = labsHtml;
+    }
+
+    function displayEncountersDeduplicated(encounterGroups) {
+      const container = document.getElementById('encountersInfo');
+      const totalUnique = encounterGroups.length;
+      const totalRaw = encounterGroups.reduce((sum, g) => sum + 1 + g.duplicates.length, 0);
+      document.getElementById('encountersCount').textContent = `${totalUnique} unique (${totalRaw} total, ${totalRaw - totalUnique} merged)`;
+
+      if (!encounterGroups || encounterGroups.length === 0) {
+        container.innerHTML = '<div class="empty-state">No encounters found</div>';
+        return;
+      }
+
+      // Sort groups by primary date (most recent first)
+      const sorted = encounterGroups.sort((a, b) => {
+        const dateA = a.primary.period?.start ? new Date(a.primary.period.start) : new Date(0);
+        const dateB = b.primary.period?.start ? new Date(b.primary.period.start) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const encountersHtml = sorted.map(group => {
+        const encounter = group.primary;
+        const type = encounter.type?.[0]?.text ||
+                    encounter.type?.[0]?.coding?.[0]?.display ||
+                    'Unknown type';
+        const status = encounter.status || 'unknown';
+        const date = encounter.period?.start ?
+                    new Date(encounter.period.start).toLocaleDateString() :
+                    'Unknown date';
+        const location = encounter.location?.[0]?.location?.display || 'Unknown location';
+
+        // Show multiple sources if duplicates exist (unique names only)
+        const uniqueSources = [...new Set(group.sources.map(s => s.source))];
+        const sourcesList = uniqueSources.join(', ');
+        const hasDuplicates = group.duplicates.length > 0;
+
+        return `
+          <div class="list-item" style="${hasDuplicates ? 'border-left: 4px solid #10b981;' : ''}">
+            <div class="source-badge">${sourcesList}</div>
+            <h3>${type}</h3>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Location:</strong> ${location}</p>
+            <span class="badge ${status === 'finished' ? 'inactive' : 'active'}">${status.toUpperCase()}</span>
+            ${hasDuplicates ? `<span class="badge" style="background: #10b981; margin-left: 8px;">✓ Merged from ${group.duplicates.length + 1} records</span>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = encountersHtml;
+    }
+
+    function displayLabs(labs) {
+      const container = document.getElementById('labsInfo');
+
+      // Filter out labs with missing critical data (no name AND no value)
+      const validLabs = labs.filter(lab => {
+        const hasName = lab.code?.text || lab.code?.coding?.[0]?.display;
+        const hasValue = lab.valueQuantity || lab.valueString;
+        // Keep labs that have at least a name OR a value
+        return hasName || hasValue;
+      });
+
+      const filteredCount = labs.length - validLabs.length;
+      if (filteredCount > 0) {
+        document.getElementById('labsCount').textContent = `${validLabs.length} total (${filteredCount} invalid filtered)`;
+      } else {
+        document.getElementById('labsCount').textContent = `${validLabs.length} total`;
+      }
+
+      if (!validLabs || validLabs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No valid lab results found</div>';
+        return;
+      }
+
+      // Sort by date (most recent first)
+      const sorted = validLabs.sort((a, b) => {
+        const dateA = a.effectiveDateTime ? new Date(a.effectiveDateTime) : new Date(0);
+        const dateB = b.effectiveDateTime ? new Date(b.effectiveDateTime) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const labsHtml = sorted.map(lab => {
+        const labName = lab.code?.text ||
+                       lab.code?.coding?.[0]?.display ||
+                       'Unknown lab';
+        const value = lab.valueQuantity ?
+                     `${lab.valueQuantity.value} ${lab.valueQuantity.unit}` :
+                     lab.valueString || 'No value';
+        const date = lab.effectiveDateTime ?
+                    new Date(lab.effectiveDateTime).toLocaleDateString() :
+                    'Unknown date';
+        const source = lab._source.source;
+
+        return `
+          <div class="lab-result">
+            <div class="source-badge">${source}</div>
+            <div>
+              <div class="lab-name">${labName}</div>
+              <div class="lab-date">${date}</div>
+            </div>
+            <div class="lab-value">${value}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = labsHtml;
+    }
+
+    function displayEncounters(encounters) {
+      const container = document.getElementById('encountersInfo');
+      document.getElementById('encountersCount').textContent = `${encounters.length} total`;
+
+      if (!encounters || encounters.length === 0) {
+        container.innerHTML = '<div class="empty-state">No encounters found</div>';
+        return;
+      }
+
+      // Sort by date (most recent first)
+      const sorted = encounters.sort((a, b) => {
+        const dateA = a.period?.start ? new Date(a.period.start) : new Date(0);
+        const dateB = b.period?.start ? new Date(b.period.start) : new Date(0);
+        return dateB - dateA;
+      });
+
+      const encountersHtml = sorted.map(encounter => {
+        const type = encounter.type?.[0]?.text ||
+                    encounter.type?.[0]?.coding?.[0]?.display ||
+                    'Unknown type';
+        const status = encounter.status || 'unknown';
+        const date = encounter.period?.start ?
+                    new Date(encounter.period.start).toLocaleDateString() :
+                    'Unknown date';
+        const location = encounter.location?.[0]?.location?.display || 'Unknown location';
+        const source = encounter._source.source;
+
+        return `
+          <div class="list-item">
+            <div class="source-badge">${source}</div>
+            <h3>${type}</h3>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Location:</strong> ${location}</p>
+            <span class="badge ${status === 'finished' ? 'inactive' : 'active'}">${status.toUpperCase()}</span>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = encountersHtml;
+    }
+
+    // VISUALIZATION FUNCTIONS - Using API endpoints for data processing
+
+    async function displayLabTrendsChart() {
+      try {
+        const response = await fetch('/api/charts/lab-trends?limit=5&mode=top');
+        if (!response.ok) throw new Error('Failed to load lab trends');
+
+        const chartData = await response.json();
+
+        if (!chartData.datasets || chartData.datasets.length === 0) {
+          return;
+        }
+
+        // Show section
+        document.getElementById('labTrendsSection').style.display = 'block';
+
+        // Create chart
+        renderLabChart(chartData.datasets);
+      } catch (error) {
+        console.error('Error loading lab trends:', error);
+      }
+    }
+
+    function renderLabChart(datasets) {
+      const ctx = document.getElementById('labTrendsChart');
+
+      // Destroy existing chart if it exists
+      if (labTrendsChart) {
+        labTrendsChart.destroy();
+      }
+
+      // Convert ISO date strings to Date objects
+      const processedDatasets = datasets.map(dataset => ({
+        ...dataset,
+        data: dataset.data.map(point => ({
+          x: new Date(point.x),
+          y: point.y
+        }))
+      }));
+
+      labTrendsChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: processedDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            title: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const source = context.raw.source || 'Unknown';
+                  return `${context.dataset.label}: ${context.parsed.y} (${source})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'day',
+                displayFormats: {
+                  day: 'MMM d, yyyy'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Date'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Value'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function showAllLabCharts() {
+      // Update button states
+      document.querySelectorAll('.view-toggle .toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      try {
+        const response = await fetch('/api/charts/lab-trends?mode=all');
+        if (!response.ok) throw new Error('Failed to load all labs');
+
+        const chartData = await response.json();
+        if (chartData.datasets && chartData.datasets.length > 0) {
+          renderLabChart(chartData.datasets);
+        }
+      } catch (error) {
+        console.error('Error loading all lab charts:', error);
+      }
+    }
+
+    async function showTopLabCharts() {
+      // Update button states
+      document.querySelectorAll('.view-toggle .toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      try {
+        const response = await fetch('/api/charts/lab-trends?limit=5&mode=top');
+        if (!response.ok) throw new Error('Failed to load top labs');
+
+        const chartData = await response.json();
+        if (chartData.datasets && chartData.datasets.length > 0) {
+          renderLabChart(chartData.datasets);
+        }
+      } catch (error) {
+        console.error('Error loading top lab charts:', error);
+      }
+    }
+
+    async function displayHealthTimeline() {
+      try {
+        const response = await fetch('/api/charts/health-timeline?limit=50');
+        if (!response.ok) throw new Error('Failed to load health timeline');
+
+        const timelineData = await response.json();
+
+        if (!timelineData.events || timelineData.events.length === 0) {
+          return;
+        }
+
+        // Show section
+        document.getElementById('timelineSection').style.display = 'block';
+
+        // Display timeline
+        const container = document.getElementById('healthTimeline');
+        const timelineHtml = timelineData.events.map((event, index) => `
+          <div class="timeline-item">
+            ${index < timelineData.events.length - 1 ? '<div class="timeline-line"></div>' : ''}
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">${event.icon} ${new Date(event.date).toLocaleDateString()}</div>
+              <div class="timeline-title">${event.title}</div>
+              <div class="timeline-desc">${event.description}</div>
+              <div style="margin-top: 8px;">
+                <span class="source-badge" style="position: static;">${event.source}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        container.innerHTML = timelineHtml;
+      } catch (error) {
+        console.error('Error loading health timeline:', error);
+      }
+    }
+
+    async function displayMedicationTimeline() {
+      try {
+        const response = await fetch('/api/charts/medication-timeline');
+        if (!response.ok) throw new Error('Failed to load medication timeline');
+
+        const timelineData = await response.json();
+
+        if (!timelineData.labels || timelineData.labels.length === 0) {
+          return;
+        }
+
+        // Show section
+        document.getElementById('medTimelineSection').style.display = 'block';
+
+        const ctx = document.getElementById('medTimelineChart');
+
+        // Destroy existing chart if it exists
+        if (medTimelineChart) {
+          medTimelineChart.destroy();
+        }
+
+        medTimelineChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: timelineData.labels,
+            datasets: timelineData.datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              title: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                stacked: true,
+                title: {
+                  display: true,
+                  text: 'Month'
+                }
+              },
+              y: {
+                stacked: true,
+                title: {
+                  display: true,
+                  text: 'Number of Medications'
+                },
+                ticks: {
+                  stepSize: 1
+                }
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error loading medication timeline:', error);
+      }
+    }
+  </script>
+</body>
+</html>

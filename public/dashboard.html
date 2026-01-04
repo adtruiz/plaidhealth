@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Health Records</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      color: white;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .patient-info {
+      margin-top: 10px;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin: 0 0 20px 0;
+      color: #333;
+      font-size: 22px;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .section-icon {
+      font-size: 28px;
+      margin-right: 12px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #999;
+      padding: 40px 20px;
+      font-size: 15px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .record {
+      padding: 20px;
+      border-left: 4px solid #667eea;
+      margin: 15px 0;
+      background: #f9fafb;
+      border-radius: 4px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .record:hover {
+      transform: translateX(5px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .record-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .record-value {
+      color: #667eea;
+      font-size: 18px;
+      font-weight: 700;
+      margin: 5px 0;
+    }
+
+    .record-detail {
+      color: #666;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .record-date {
+      color: #999;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .error {
+      color: #d32f2f;
+      padding: 20px;
+      background: #ffebee;
+      border-radius: 8px;
+      border-left: 4px solid #d32f2f;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .badge-active {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-completed {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .badge-abnormal {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 36px;
+      font-weight: 700;
+      margin: 10px 0;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .debug-link {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #667eea;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s;
+    }
+
+    .debug-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 id="patient-name">Loading...</h1>
+      <div class="patient-info" id="patient-info"></div>
+    </div>
+
+    <div class="grid" id="stats-grid" style="display:none;">
+      <div class="stat-card">
+        <div class="stat-label">Lab Results</div>
+        <div class="stat-number" id="stat-labs">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Medications</div>
+        <div class="stat-number" id="stat-meds">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Conditions</div>
+        <div class="stat-number" id="stat-conditions">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Encounters</div>
+        <div class="stat-number" id="stat-encounters">-</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="section-icon">📋</span> Demographics</h2>
+      <div id="demographics" class="loading">
+        <div class="spinner"></div>
+        <div>Loading patient information...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="section-icon">🧪</span> Recent Lab Results</h2>
+      <div id="observations" class="loading">
+        <div class="spinner"></div>
+        <div>Loading lab results...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="section-icon">💊</span> Medications</h2>
+      <div id="medications" class="loading">
+        <div class="spinner"></div>
+        <div>Loading medications...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="section-icon">🏥</span> Conditions</h2>
+      <div id="conditions" class="loading">
+        <div class="spinner"></div>
+        <div>Loading conditions...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="section-icon">📅</span> Recent Encounters</h2>
+      <div id="encounters" class="loading">
+        <div class="spinner"></div>
+        <div>Loading encounters...</div>
+      </div>
+    </div>
+  </div>
+
+  <a id="debug-link" class="debug-link" href="#" target="_blank">🔍 View Raw Data</a>
+
+  <script>
+    // Get state parameter from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const state = urlParams.get('state');
+
+    if (!state) {
+      document.body.innerHTML = '<div class="error" style="margin: 50px auto; max-width: 600px;">Missing authentication state. Please <a href="/">start over</a>.</div>';
+      throw new Error('Missing state parameter');
+    }
+
+    // Set debug link URL
+    document.getElementById('debug-link').href = `/debug.html?state=${state}`;
+
+    // Fetch patient demographics
+    async function fetchPatient() {
+      try {
+        const response = await fetch(`/api/patient?state=${state}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        const name = data.name?.[0];
+        const fullName = name ? `${name.given?.join(' ')} ${name.family}` : 'Unknown Patient';
+
+        document.getElementById('patient-name').textContent = fullName;
+
+        const dob = data.birthDate ? new Date(data.birthDate).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        }) : 'Unknown';
+        const gender = data.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : 'Unknown';
+
+        document.getElementById('patient-info').innerHTML = `DOB: ${dob} | Gender: ${gender}`;
+
+        document.getElementById('demographics').innerHTML = `
+          <div class="record">
+            <div class="record-title">Full Name</div>
+            <div class="record-value">${fullName}</div>
+          </div>
+          <div class="record">
+            <div class="record-title">Date of Birth</div>
+            <div class="record-value">${dob}</div>
+          </div>
+          <div class="record">
+            <div class="record-title">Gender</div>
+            <div class="record-value">${gender}</div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error fetching patient:', error);
+        document.getElementById('demographics').innerHTML =
+          '<div class="error">Failed to load patient information. Please try again.</div>';
+      }
+    }
+
+    // Fetch lab results
+    async function fetchObservations() {
+      try {
+        const response = await fetch(`/api/observations?state=${state}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (!data.entry || data.entry.length === 0) {
+          document.getElementById('observations').innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">🔬</div><p>No lab results found</p></div>';
+          return;
+        }
+
+        document.getElementById('stat-labs').textContent = data.entry.length;
+        document.getElementById('stats-grid').style.display = 'grid';
+
+        const html = data.entry.map(entry => {
+          const obs = entry.resource;
+          const display = obs.code?.coding?.[0]?.display || obs.code?.text || 'Unknown test';
+
+          let value = 'N/A';
+          if (obs.valueQuantity) {
+            value = `${obs.valueQuantity.value} ${obs.valueQuantity.unit || ''}`;
+          } else if (obs.valueString) {
+            value = obs.valueString;
+          } else if (obs.valueCodeableConcept) {
+            value = obs.valueCodeableConcept.text || obs.valueCodeableConcept.coding?.[0]?.display || 'N/A';
+          }
+
+          const date = obs.effectiveDateTime
+            ? new Date(obs.effectiveDateTime).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+              })
+            : 'Unknown date';
+
+          const referenceRange = obs.referenceRange?.[0]?.text || '';
+          const isAbnormal = obs.interpretation?.[0]?.coding?.[0]?.code === 'A';
+
+          return `
+            <div class="record">
+              <div class="record-title">
+                ${display}
+                ${isAbnormal ? '<span class="badge badge-abnormal">Abnormal</span>' : ''}
+              </div>
+              <div class="record-value">${value}</div>
+              ${referenceRange ? `<div class="record-detail">Reference: ${referenceRange}</div>` : ''}
+              <div class="record-date">${date}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('observations').innerHTML = html;
+      } catch (error) {
+        console.error('Error fetching observations:', error);
+        document.getElementById('observations').innerHTML =
+          '<div class="error">Failed to load lab results. Please try again.</div>';
+      }
+    }
+
+    // Fetch medications
+    async function fetchMedications() {
+      try {
+        const response = await fetch(`/api/medications?state=${state}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (!data.entry || data.entry.length === 0) {
+          document.getElementById('medications').innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">💊</div><p>No medications found</p></div>';
+          return;
+        }
+
+        document.getElementById('stat-meds').textContent = data.entry.length;
+
+        const html = data.entry.map(entry => {
+          const med = entry.resource;
+          const medication = med.medicationCodeableConcept?.coding?.[0]?.display
+            || med.medicationCodeableConcept?.text
+            || 'Unknown medication';
+          const dosage = med.dosageInstruction?.[0]?.text || 'No dosage information';
+          const status = med.status || 'unknown';
+          const authoredOn = med.authoredOn
+            ? new Date(med.authoredOn).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+              })
+            : 'Unknown date';
+
+          const badgeClass = status === 'active' ? 'badge-active' : 'badge-completed';
+
+          return `
+            <div class="record">
+              <div class="record-title">
+                ${medication}
+                <span class="badge ${badgeClass}">${status}</span>
+              </div>
+              <div class="record-detail">${dosage}</div>
+              <div class="record-date">Prescribed: ${authoredOn}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('medications').innerHTML = html;
+      } catch (error) {
+        console.error('Error fetching medications:', error);
+        document.getElementById('medications').innerHTML =
+          '<div class="error">Failed to load medications. Please try again.</div>';
+      }
+    }
+
+    // Fetch conditions
+    async function fetchConditions() {
+      try {
+        const response = await fetch(`/api/conditions?state=${state}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (!data.entry || data.entry.length === 0) {
+          document.getElementById('conditions').innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">🏥</div><p>No conditions found</p></div>';
+          return;
+        }
+
+        document.getElementById('stat-conditions').textContent = data.entry.length;
+
+        const html = data.entry.map(entry => {
+          const condition = entry.resource;
+          const display = condition.code?.coding?.[0]?.display || condition.code?.text || 'Unknown condition';
+          const clinicalStatus = condition.clinicalStatus?.coding?.[0]?.code || 'unknown';
+          const onsetDate = condition.onsetDateTime
+            ? new Date(condition.onsetDateTime).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+              })
+            : 'Unknown date';
+
+          const badgeClass = clinicalStatus === 'active' ? 'badge-abnormal' : 'badge-completed';
+
+          return `
+            <div class="record">
+              <div class="record-title">
+                ${display}
+                <span class="badge ${badgeClass}">${clinicalStatus}</span>
+              </div>
+              <div class="record-date">Onset: ${onsetDate}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('conditions').innerHTML = html;
+      } catch (error) {
+        console.error('Error fetching conditions:', error);
+        document.getElementById('conditions').innerHTML =
+          '<div class="error">Failed to load conditions. Please try again.</div>';
+      }
+    }
+
+    // Fetch encounters
+    async function fetchEncounters() {
+      try {
+        const response = await fetch(`/api/encounters?state=${state}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+
+        if (!data.entry || data.entry.length === 0) {
+          document.getElementById('encounters').innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No encounters found</p></div>';
+          return;
+        }
+
+        document.getElementById('stat-encounters').textContent = data.entry.length;
+
+        const html = data.entry.map(entry => {
+          const encounter = entry.resource;
+          const type = encounter.type?.[0]?.coding?.[0]?.display || encounter.type?.[0]?.text || 'Office Visit';
+          const status = encounter.status || 'unknown';
+          const date = encounter.period?.start
+            ? new Date(encounter.period.start).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+              })
+            : 'Unknown date';
+
+          const badgeClass = status === 'finished' ? 'badge-completed' : 'badge-active';
+
+          return `
+            <div class="record">
+              <div class="record-title">
+                ${type}
+                <span class="badge ${badgeClass}">${status}</span>
+              </div>
+              <div class="record-date">${date}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('encounters').innerHTML = html;
+      } catch (error) {
+        console.error('Error fetching encounters:', error);
+        document.getElementById('encounters').innerHTML =
+          '<div class="error">Failed to load encounters. Please try again.</div>';
+      }
+    }
+
+    // Load all data
+    fetchPatient();
+    fetchObservations();
+    fetchMedications();
+    fetchConditions();
+    fetchEncounters();
+  </script>
+</body>
+</html>

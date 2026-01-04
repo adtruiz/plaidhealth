@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Inspector - Raw FHIR Responses</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Monaco', 'Courier New', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #007acc;
+    }
+
+    h1 {
+      color: #4ec9b0;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      color: #858585;
+      font-size: 14px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: #007acc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #005a9e;
+    }
+
+    .btn:disabled {
+      background: #3c3c3c;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #3c3c3c;
+    }
+
+    .btn-secondary:hover {
+      background: #4e4e4e;
+    }
+
+    .section {
+      background: #252526;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      background: #2d2d30;
+      padding: 15px 20px;
+      border-bottom: 1px solid #3e3e42;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .section-header:hover {
+      background: #333337;
+    }
+
+    .section-title {
+      color: #4ec9b0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .section-badge {
+      background: #007acc;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .section-content {
+      padding: 20px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .section-content.collapsed {
+      display: none;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .json-key {
+      color: #9cdcfe;
+    }
+
+    .json-string {
+      color: #ce9178;
+    }
+
+    .json-number {
+      color: #b5cea8;
+    }
+
+    .json-boolean {
+      color: #569cd6;
+    }
+
+    .json-null {
+      color: #569cd6;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #858585;
+    }
+
+    .spinner {
+      border: 3px solid #3c3c3c;
+      border-top: 3px solid #007acc;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #5a1d1d;
+      border-left: 4px solid #f48771;
+      padding: 15px;
+      border-radius: 4px;
+      color: #f48771;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #2d2d30;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #007acc;
+    }
+
+    .stat-label {
+      color: #858585;
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      color: #4ec9b0;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .copy-btn {
+      background: #3c3c3c;
+      border: 1px solid #5a5a5a;
+      color: #d4d4d4;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 10px;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #4e4e4e;
+    }
+
+    .copy-btn.copied {
+      background: #16825d;
+      color: white;
+    }
+
+    .info-banner {
+      background: #1a3e59;
+      border-left: 4px solid #4fc3f7;
+      padding: 15px 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      color: #b3e5fc;
+    }
+
+    .info-banner strong {
+      color: #4fc3f7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 FHIR Data Inspector</h1>
+      <div class="subtitle">View raw FHIR responses from Epic API</div>
+    </div>
+
+    <div class="info-banner">
+      <strong>What is this?</strong> This page shows you the raw JSON data returned by Epic's FHIR API.
+      Use this to understand what data is available, how it's structured, and what fields are populated for YOUR health records.
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="fetch-all-btn">Fetch All Data</button>
+      <button class="btn btn-secondary" id="fetch-patient-btn">Patient Demographics</button>
+      <button class="btn btn-secondary" id="fetch-obs-btn">Observations (Labs)</button>
+      <button class="btn btn-secondary" id="fetch-meds-btn">Medications</button>
+      <button class="btn btn-secondary" id="fetch-cond-btn">Conditions</button>
+      <button class="btn btn-secondary" id="fetch-enc-btn">Encounters</button>
+      <button class="btn btn-secondary" id="download-all-btn">Download All as JSON</button>
+    </div>
+
+    <div class="summary" id="summary" style="display:none;">
+      <div class="stat-card">
+        <div class="stat-label">Patient ID</div>
+        <div class="stat-value" id="stat-patient-id">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Observations</div>
+        <div class="stat-value" id="stat-observations">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Medications</div>
+        <div class="stat-value" id="stat-medications">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Conditions</div>
+        <div class="stat-value" id="stat-conditions">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Encounters</div>
+        <div class="stat-value" id="stat-encounters">-</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('patient')">
+        <span class="section-title">Patient Demographics</span>
+        <span class="section-badge" id="badge-patient">Not loaded</span>
+      </div>
+      <div class="section-content" id="content-patient">
+        <div class="loading">
+          <div>Click "Patient Demographics" button above to load data</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('observations')">
+        <span class="section-title">Observations (Labs & Vitals)</span>
+        <span class="section-badge" id="badge-observations">Not loaded</span>
+      </div>
+      <div class="section-content collapsed" id="content-observations">
+        <div class="loading">
+          <div>Click "Observations" button above to load data</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('medications')">
+        <span class="section-title">Medications</span>
+        <span class="section-badge" id="badge-medications">Not loaded</span>
+      </div>
+      <div class="section-content collapsed" id="content-medications">
+        <div class="loading">
+          <div>Click "Medications" button above to load data</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('conditions')">
+        <span class="section-title">Conditions (Diagnoses)</span>
+        <span class="section-badge" id="badge-conditions">Not loaded</span>
+      </div>
+      <div class="section-content collapsed" id="content-conditions">
+        <div class="loading">
+          <div>Click "Conditions" button above to load data</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('encounters')">
+        <span class="section-title">Encounters (Appointments)</span>
+        <span class="section-badge" id="badge-encounters">Not loaded</span>
+      </div>
+      <div class="section-content collapsed" id="content-encounters">
+        <div class="loading">
+          <div>Click "Encounters" button above to load data</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const state = urlParams.get('state');
+
+    if (!state) {
+      document.body.innerHTML = '<div class="error" style="margin: 50px;">Missing authentication state. Please <a href="/" style="color: #4fc3f7;">start over</a> and connect your Epic account.</div>';
+    }
+
+    const allData = {};
+
+    function toggleSection(sectionId) {
+      const content = document.getElementById(`content-${sectionId}`);
+      content.classList.toggle('collapsed');
+    }
+
+    function syntaxHighlight(json) {
+      json = JSON.stringify(json, null, 2);
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+
+    function copyToClipboard(text, buttonId) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(buttonId);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy JSON';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    async function fetchData(endpoint, resourceName) {
+      const contentDiv = document.getElementById(`content-${resourceName}`);
+      const badgeSpan = document.getElementById(`badge-${resourceName}`);
+
+      contentDiv.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+      badgeSpan.textContent = 'Loading...';
+      badgeSpan.style.background = '#858585';
+
+      try {
+        const response = await fetch(`${endpoint}?state=${state}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        allData[resourceName] = data;
+
+        const count = data.entry?.length || (data.resourceType === 'Patient' ? 1 : 0);
+        badgeSpan.textContent = `${count} record${count !== 1 ? 's' : ''}`;
+        badgeSpan.style.background = '#16825d';
+
+        const copyBtnId = `copy-${resourceName}`;
+        const dataJson = JSON.stringify(data);
+
+        contentDiv.innerHTML = `
+          <div style="margin-bottom: 10px;">
+            <button class="copy-btn" id="${copyBtnId}">Copy JSON</button>
+          </div>
+          <pre>${syntaxHighlight(data)}</pre>
+        `;
+
+        // Attach event listener safely (avoid inline onclick with escaped JSON)
+        document.getElementById(copyBtnId).addEventListener('click', () => {
+          copyToClipboard(dataJson, copyBtnId);
+        });
+
+        // Update summary stats
+        if (resourceName === 'patient') {
+          document.getElementById('stat-patient-id').textContent = data.id || 'N/A';
+        } else if (resourceName === 'observations') {
+          document.getElementById('stat-observations').textContent = count;
+        } else if (resourceName === 'medications') {
+          document.getElementById('stat-medications').textContent = count;
+        } else if (resourceName === 'conditions') {
+          document.getElementById('stat-conditions').textContent = count;
+        } else if (resourceName === 'encounters') {
+          document.getElementById('stat-encounters').textContent = count;
+        }
+
+        document.getElementById('summary').style.display = 'grid';
+
+        // Expand section after loading
+        contentDiv.classList.remove('collapsed');
+
+      } catch (error) {
+        console.error(`Error fetching ${resourceName}:`, error);
+        contentDiv.innerHTML = `<div class="error">Failed to load ${resourceName}: ${error.message}</div>`;
+        badgeSpan.textContent = 'Error';
+        badgeSpan.style.background = '#5a1d1d';
+      }
+    }
+
+    async function fetchAllData() {
+      await fetchData('/api/patient', 'patient');
+      await fetchData('/api/observations', 'observations');
+      await fetchData('/api/medications', 'medications');
+      await fetchData('/api/conditions', 'conditions');
+      await fetchData('/api/encounters', 'encounters');
+    }
+
+    function downloadAllData() {
+      const dataStr = JSON.stringify(allData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `fhir-data-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+    }
+
+    // Event listeners
+    document.getElementById('fetch-all-btn').addEventListener('click', fetchAllData);
+    document.getElementById('fetch-patient-btn').addEventListener('click', () => fetchData('/api/patient', 'patient'));
+    document.getElementById('fetch-obs-btn').addEventListener('click', () => fetchData('/api/observations', 'observations'));
+    document.getElementById('fetch-meds-btn').addEventListener('click', () => fetchData('/api/medications', 'medications'));
+    document.getElementById('fetch-cond-btn').addEventListener('click', () => fetchData('/api/conditions', 'conditions'));
+    document.getElementById('fetch-enc-btn').addEventListener('click', () => fetchData('/api/encounters', 'encounters'));
+    document.getElementById('download-all-btn').addEventListener('click', downloadAllData);
+  </script>
+</body>
+</html>

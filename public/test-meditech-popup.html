@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEDITECH Popup Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f7fa;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .info {
+      background: #f0f9ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin: 10px 0;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .btn-secondary {
+      background: #6b7280;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .success {
+      background: #d1fae5;
+      border-left: 4px solid #10b981;
+      display: block;
+    }
+    .error {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      display: block;
+    }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🧪 MEDITECH OAuth Popup Test</h1>
+
+    <div class="info">
+      <strong>This will test MEDITECH OAuth in a popup window (like Postman).</strong>
+      <br><br>
+      When you click the button below:
+      <ol>
+        <li>A popup window will open</li>
+        <li>MEDITECH will redirect to Google login if needed</li>
+        <li>You authorize the scopes</li>
+        <li>Popup closes and returns the authorization code</li>
+      </ol>
+    </div>
+
+    <button class="btn" onclick="testMeditechPopup()">
+      🚀 Test MEDITECH OAuth (Popup)
+    </button>
+
+    <button class="btn btn-secondary" onclick="clearSession()">
+      🗑️ Clear Session & Cookies
+    </button>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    // MEDITECH OAuth URL (same as our app generates)
+    const MEDITECH_AUTH_URL = 'https://greenfield-prod-apis.meditech.com/oauth/authorize';
+    const CLIENT_ID = 'AdrianRuiz@d51525b1e554417ba8f75393d8725c01';
+    const REDIRECT_URI = 'https://stripe-healthcare-production.up.railway.app/callback';
+    const SCOPE = 'patient/*.read';
+
+    function generateState() {
+      const randomBytes = new Uint8Array(16);
+      crypto.getRandomValues(randomBytes);
+      const randomId = Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('');
+      return btoa(JSON.stringify({ id: randomId, provider: 'meditech' }));
+    }
+
+    function testMeditechPopup() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.className = 'result';
+      resultDiv.style.display = 'none';
+
+      // Build authorization URL
+      const state = generateState();
+      const authUrl = `${MEDITECH_AUTH_URL}?` + new URLSearchParams({
+        client_id: CLIENT_ID,
+        redirect_uri: REDIRECT_URI,
+        response_type: 'code',
+        scope: SCOPE,
+        state: state
+      }).toString();
+
+      console.log('Opening popup with URL:', authUrl);
+
+      // Open popup window (like Postman does)
+      const popup = window.open(
+        authUrl,
+        'meditech-oauth',
+        'width=600,height=700,scrollbars=yes,resizable=yes'
+      );
+
+      if (!popup) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = '<strong>❌ Popup blocked!</strong><br>Please allow popups for this site and try again.';
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      // Monitor popup
+      const checkPopup = setInterval(() => {
+        try {
+          // Check if popup was closed
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            resultDiv.className = 'result error';
+            resultDiv.innerHTML = '<strong>⚠️ Popup closed</strong><br>Authorization was cancelled or failed.';
+            resultDiv.style.display = 'block';
+            return;
+          }
+
+          // Try to read popup URL (will only work if same origin after redirect)
+          const popupUrl = popup.location.href;
+
+          // Check if we got redirected back to our callback
+          if (popupUrl.includes(REDIRECT_URI)) {
+            clearInterval(checkPopup);
+
+            // Extract code and state from URL
+            const urlParams = new URLSearchParams(popup.location.search);
+            const code = urlParams.get('code');
+            const returnedState = urlParams.get('state');
+            const error = urlParams.get('error');
+
+            popup.close();
+
+            if (error) {
+              resultDiv.className = 'result error';
+              resultDiv.innerHTML = `<strong>❌ OAuth Error</strong><br>Error: ${error}<br>Description: ${urlParams.get('error_description') || 'Unknown'}`;
+              resultDiv.style.display = 'block';
+            } else if (code) {
+              resultDiv.className = 'result success';
+              resultDiv.innerHTML = `
+                <strong>✅ SUCCESS!</strong><br><br>
+                <strong>Authorization Code received:</strong><br>
+                <code>${code.substring(0, 50)}...</code><br><br>
+                <strong>What this means:</strong><br>
+                ✅ MEDITECH accepted the OAuth request<br>
+                ✅ Google authentication worked (if required)<br>
+                ✅ User authorized the scopes<br>
+                ✅ Our redirect URI is correct<br><br>
+                <strong>Next:</strong> Our server can exchange this code for an access token!
+              `;
+              resultDiv.style.display = 'block';
+              console.log('Authorization code:', code);
+              console.log('State:', returnedState);
+            }
+          }
+        } catch (e) {
+          // Cross-origin error (expected while popup is on MEDITECH's domain)
+          // This is normal - we just keep waiting
+        }
+      }, 500);
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        if (!popup.closed) {
+          clearInterval(checkPopup);
+          popup.close();
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = '<strong>⏱️ Timeout</strong><br>Authorization took too long. Please try again.';
+          resultDiv.style.display = 'block';
+        }
+      }, 300000);
+    }
+
+    function clearSession() {
+      // Clear cookies
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // Clear localStorage
+      localStorage.clear();
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      alert('✅ Cookies and session cleared!\n\nNow:\n1. Close this tab\n2. Clear your browser cache (Cmd+Shift+Delete on Mac)\n3. Open a new incognito/private window\n4. Go back to the app');
+    }
+  </script>
+</body>
+</html>

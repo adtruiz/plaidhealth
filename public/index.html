@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FHIR Health Records - Plaid for Healthcare Prototype</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      padding: 50px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 600px;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      color: #667eea;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .features {
+      text-align: left;
+      margin: 30px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+      color: #555;
+    }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-right: 12px;
+    }
+
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 40px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      margin-top: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .info-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-top: 30px;
+      border-radius: 4px;
+      text-align: left;
+    }
+
+    .info-box strong {
+      color: #856404;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .info-box code {
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🏥</div>
+    <div class="subtitle">Prototype Demo</div>
+    <h1>FHIR Health Records Viewer</h1>
+
+    <p>
+      Connect your Epic MyChart account to view your complete health records
+      in one unified timeline. This prototype demonstrates how FHIR APIs
+      enable patient-authorized data access.
+    </p>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">📋</span>
+        <span>View demographics and patient information</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🧪</span>
+        <span>Access lab results and vital signs</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">💊</span>
+        <span>See current and past medications</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🏥</span>
+        <span>Review appointments and encounters</span>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔒</span>
+        <span>Secure OAuth 2.0 + PKCE authentication</span>
+      </div>
+    </div>
+
+    <a href="/auth/epic" class="btn">Connect Epic MyChart</a>
+
+    <div class="info-box">
+      <strong>🧪 Using Epic Sandbox</strong>
+      This prototype uses Epic's test environment. Use these credentials:
+      <br><br>
+      <strong>Username:</strong> <code>fhirderrick</code>
+      <br>
+      <strong>Password:</strong> <code>epicepic1</code>
+      <br><br>
+      Other test patients: <code>fhircamila</code>, <code>fhirelizabeth</code>
+    </div>
+
+    <div class="footer">
+      <strong>Plaid for Healthcare</strong> - Patient Engagement Platform
+      <br>
+      Built with Epic FHIR R4 API
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect Health Records</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: #374151;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .modal-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .modal-body {
+      padding: 0 24px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .search-box {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 16px 0;
+      z-index: 10;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cpath d='m21 21-4.35-4.35'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 12px center;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .providers-list {
+      margin-top: 8px;
+    }
+
+    .provider-item {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .provider-item:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .provider-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      margin-right: 16px;
+      font-weight: 700;
+      color: white;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .provider-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 8px;
+    }
+
+    .provider-info {
+      flex: 1;
+    }
+
+    .provider-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 2px;
+    }
+
+    .provider-type {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .provider-arrow {
+      color: #9ca3af;
+      font-size: 20px;
+      transition: transform 0.2s;
+    }
+
+    .provider-item:hover .provider-arrow {
+      transform: translateX(4px);
+      color: #3b82f6;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e5e7eb;
+      background: #f9fafb;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .footer-icon {
+      color: #10b981;
+      font-size: 16px;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+
+    .no-results-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    /* Color schemes for providers */
+    .icon-aetna { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
+    .icon-anthem { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+    .icon-bcbsmn { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); }
+    .icon-centene { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
+    .icon-cigna { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+    .icon-epic { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .icon-healow { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+    .icon-humana { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .icon-kaiser { background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); }
+    .icon-bluebutton { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
+    .icon-nextgen { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+    .icon-cerner { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+    .icon-quest { background: linear-gradient(135deg, #f97316 0%, #2563eb 100%); }
+    .icon-labcorp { background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); }
+    .icon-meditech { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+    .icon-uhc { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <div class="modal-header">
+      <button class="close-btn" onclick="closeWidget()">×</button>
+      <h2 class="modal-title">Connect Health Records</h2>
+      <p class="modal-subtitle">Select your healthcare provider or insurance company to securely access your health data.</p>
+    </div>
+
+    <div class="modal-body">
+      <div class="search-box">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search providers..."
+          id="searchInput"
+          oninput="filterProviders()"
+        >
+      </div>
+
+      <div class="providers-list" id="providersList">
+        <!-- Providers sorted alphabetically -->
+        <a href="/auth/aetna" class="provider-item" data-name="aetna" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/aetna.com" alt="Aetna" onerror="this.parentElement.innerHTML='Ae'; this.parentElement.classList.add('icon-aetna')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Aetna</div>
+            <div class="provider-type">Insurance • 39M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/anthem" class="provider-item" data-name="anthem elevance health" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://www.anthem.com/dam/medpolicies/abc/active/img/logo_Anthem_BCBS_Blue_RGB.png" alt="Anthem" onerror="this.src='https://logo.clearbit.com/elevancehealth.com'; this.onerror=function(){this.parentElement.innerHTML='An'; this.parentElement.classList.add('icon-anthem');}">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Anthem (Elevance Health)</div>
+            <div class="provider-type">Insurance • 47M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/bcbsmn" class="provider-item" data-name="blue cross blue shield minnesota bcbs" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/bluecrossmn.com" alt="BCBS Minnesota" onerror="this.parentElement.innerHTML='BC'; this.parentElement.classList.add('icon-bcbsmn')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Blue Cross Blue Shield Minnesota</div>
+            <div class="provider-type">Insurance • Regional coverage</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/bcbsma" class="provider-item" data-name="blue cross blue shield massachusetts bcbs" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/bluecrossma.com" alt="BCBS Massachusetts" onerror="this.parentElement.innerHTML='BC'; this.parentElement.classList.add('icon-bcbsma')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Blue Cross Blue Shield Massachusetts</div>
+            <div class="provider-type">Insurance • 2M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/bcbstn" class="provider-item" data-name="blue cross blue shield tennessee bcbs" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/bcbst.com" alt="BCBS Tennessee" onerror="this.parentElement.innerHTML='BC'; this.parentElement.classList.add('icon-bcbstn')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Blue Cross Blue Shield Tennessee</div>
+            <div class="provider-type">Insurance • 2M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/hcsc" class="provider-item" data-name="hcsc blue cross blue shield illinois texas montana new mexico oklahoma bcbs" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/hcsc.com" alt="HCSC" onerror="this.parentElement.innerHTML='HC'; this.parentElement.classList.add('icon-hcsc')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">HCSC (BCBS IL/TX/MT/NM/OK)</div>
+            <div class="provider-type">Insurance • 17M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/cigna" class="provider-item" data-name="cigna" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/cigna.com" alt="Cigna" onerror="this.parentElement.innerHTML='Ci'; this.parentElement.classList.add('icon-cigna')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Cigna Healthcare</div>
+            <div class="provider-type">Insurance • 180M+ customers</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/centene" class="provider-item" data-name="centene wellcare ambetter" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/centene.com" alt="Centene" onerror="this.parentElement.innerHTML='Ce'; this.parentElement.classList.add('icon-centene')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Centene</div>
+            <div class="provider-type">Insurance • 26M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/epic" class="provider-item" data-name="epic mychart" data-type="emr">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/epic.com" alt="Epic" onerror="this.parentElement.innerHTML='Ep'; this.parentElement.classList.add('icon-epic')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Epic MyChart</div>
+            <div class="provider-type">Electronic Medical Records • 305M+ patients</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/healow" class="provider-item" data-name="healow eclinicalworks" data-type="emr">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/healow.com" alt="Healow" onerror="this.parentElement.innerHTML='He'; this.parentElement.classList.add('icon-healow')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Healow (eClinicalWorks)</div>
+            <div class="provider-type">Electronic Medical Records • 850K+ providers</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/humana" class="provider-item" data-name="humana" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/humana.com" alt="Humana" onerror="this.parentElement.innerHTML='Hu'; this.parentElement.classList.add('icon-humana')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Humana</div>
+            <div class="provider-type">Insurance • 17M+ Medicare members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/kaiser" class="provider-item" data-name="kaiser permanente kp" data-type="integrated">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/kp.org" alt="Kaiser Permanente" onerror="this.parentElement.innerHTML='Ka'; this.parentElement.classList.add('icon-kaiser')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Kaiser Permanente</div>
+            <div class="provider-type">Integrated Health System • 12.7M members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/labcorp" class="provider-item" data-name="labcorp laboratory lab" data-type="lab">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/labcorp.com" alt="LabCorp" onerror="this.parentElement.innerHTML='La'; this.parentElement.classList.add('icon-labcorp')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">LabCorp</div>
+            <div class="provider-type">Laboratory • 2nd largest lab network</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/meditech" class="provider-item" data-name="meditech greenfield" data-type="emr">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/meditech.com" alt="MEDITECH" onerror="this.parentElement.innerHTML='MT'; this.parentElement.classList.add('icon-meditech')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">MEDITECH Greenfield</div>
+            <div class="provider-type">Electronic Medical Records • 2,400+ hospitals</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/bluebutton" class="provider-item" data-name="medicare blue button cms" data-type="government">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/cms.gov" alt="Medicare" onerror="this.parentElement.innerHTML='Me'; this.parentElement.classList.add('icon-bluebutton')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Medicare (Blue Button 2.0)</div>
+            <div class="provider-type">Government • 64M+ enrollees</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/molina" class="provider-item" data-name="molina healthcare" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/molinahealthcare.com" alt="Molina Healthcare" onerror="this.parentElement.innerHTML='Mo'; this.parentElement.classList.add('icon-molina')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Molina Healthcare</div>
+            <div class="provider-type">Insurance • 5.2M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/nextgen" class="provider-item" data-name="nextgen healthcare" data-type="emr">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/nextgen.com" alt="NextGen" onerror="this.parentElement.innerHTML='Ne'; this.parentElement.classList.add('icon-nextgen')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">NextGen Healthcare</div>
+            <div class="provider-type">Electronic Medical Records • 16K+ practices</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/cerner" class="provider-item" data-name="oracle health cerner" data-type="emr">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/oracle.com" alt="Oracle Health" onerror="this.parentElement.innerHTML='Or'; this.parentElement.classList.add('icon-cerner')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Oracle Health (Cerner)</div>
+            <div class="provider-type">Electronic Medical Records • 800+ hospitals</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/quest" class="provider-item" data-name="quest diagnostics lab laboratory" data-type="lab">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/questdiagnostics.com" alt="Quest Diagnostics" onerror="this.parentElement.innerHTML='Qu'; this.parentElement.classList.add('icon-quest')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">Quest Diagnostics</div>
+            <div class="provider-type">Laboratory • Largest lab network in US</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+
+        <a href="/auth/uhc" class="provider-item" data-name="unitedhealthcare uhc optum" data-type="insurance">
+          <div class="provider-icon">
+            <img src="https://logo.clearbit.com/uhc.com" alt="UnitedHealthcare" onerror="this.parentElement.innerHTML='UH'; this.parentElement.classList.add('icon-uhc')">
+          </div>
+          <div class="provider-info">
+            <div class="provider-name">UnitedHealthcare</div>
+            <div class="provider-type">Insurance • 50M+ members</div>
+          </div>
+          <div class="provider-arrow">→</div>
+        </a>
+      </div>
+
+      <div class="no-results" id="noResults" style="display: none;">
+        <div class="no-results-icon">🔍</div>
+        <div>No providers found</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="footer-icon">🔒</span>
+      <span>Secured by SMART on FHIR • HIPAA compliant</span>
+    </div>
+  </div>
+
+  <script>
+    // Get URL parameters for widget mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const widgetToken = urlParams.get('widget_token');
+    const isWidgetMode = urlParams.get('mode') === 'widget' || !!widgetToken;
+
+    // Initialize widget mode if token is provided
+    function initWidgetMode() {
+      if (!widgetToken) return;
+
+      // Update all provider links to go through widget OAuth flow
+      document.querySelectorAll('.provider-item').forEach(item => {
+        const href = item.getAttribute('href');
+        const providerMatch = href.match(/\/auth\/(\w+)/);
+        if (providerMatch) {
+          const provider = providerMatch[1];
+          // Change to widget OAuth initiation endpoint
+          item.href = `/api/v1/widget/initiate/${provider}?widget_token=${encodeURIComponent(widgetToken)}`;
+        }
+      });
+
+      console.log('Widget mode initialized with token:', widgetToken.substring(0, 10) + '...');
+    }
+
+    function closeWidget() {
+      // Send close message to parent
+      sendToParent({ type: 'CLOSE' });
+
+      // If in popup, close window
+      if (window.opener) {
+        window.close();
+      } else if (window.parent !== window) {
+        // In iframe - parent handles close
+      } else {
+        // Standalone - go back
+        window.history.back();
+      }
+    }
+
+    // Send message to parent (works for both popup and iframe)
+    function sendToParent(data) {
+      const message = { source: 'pfh-connect-widget', ...data };
+
+      if (window.opener) {
+        window.opener.postMessage(message, '*');
+      } else if (window.parent !== window) {
+        window.parent.postMessage(message, '*');
+      }
+    }
+
+    function filterProviders() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const providers = document.querySelectorAll('.provider-item');
+      const noResults = document.getElementById('noResults');
+      let visibleCount = 0;
+
+      providers.forEach(provider => {
+        const name = provider.getAttribute('data-name').toLowerCase();
+        const type = provider.getAttribute('data-type').toLowerCase();
+
+        if (name.includes(searchTerm) || type.includes(searchTerm)) {
+          provider.style.display = 'flex';
+          visibleCount++;
+        } else {
+          provider.style.display = 'none';
+        }
+      });
+
+      // Show/hide no results message
+      if (visibleCount === 0) {
+        noResults.style.display = 'block';
+      } else {
+        noResults.style.display = 'none';
+      }
+    }
+
+    // Listen for ESC key to close
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeWidget();
+      }
+    });
+
+    // Send message to parent when provider is selected
+    document.querySelectorAll('.provider-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        const providerName = this.querySelector('.provider-name').textContent;
+        const href = this.getAttribute('href');
+        const providerMatch = href.match(/(?:\/auth\/|\/initiate\/)(\w+)/);
+        const providerId = providerMatch ? providerMatch[1] : 'unknown';
+
+        // Notify parent of provider selection
+        sendToParent({
+          type: 'PROVIDER_SELECTED',
+          provider: providerId,
+          providerName: providerName,
+          url: this.href
+        });
+
+        // Let the link work normally (redirects to OAuth)
+      });
+    });
+
+    // Initialize widget mode on page load
+    initWidgetMode();
+  </script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Dashboard - Plaid for Healthcare</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px 40px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .navbar-brand {
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .navbar-user {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    .logout-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .welcome {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .welcome h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    .welcome p {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .connections {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .connections h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .connect-btn {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      margin-top: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      border: none;
+      cursor: pointer;
+    }
+
+    .connect-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    /* Modal/Widget overlay styles */
+    .widget-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .widget-overlay.active {
+      display: flex;
+    }
+
+    .widget-iframe {
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .connection-card {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 15px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #667eea;
+    }
+
+    .connection-info {
+      flex: 1;
+    }
+
+    .connection-title {
+      font-weight: 600;
+      color: #333;
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+
+    .connection-subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .connection-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .view-btn {
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .view-btn:hover {
+      background: #5568d3;
+    }
+
+    .disconnect-btn {
+      background: #dc3545;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .disconnect-btn:hover {
+      background: #c82333;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-brand">
+      <span>🏥</span>
+      <span>Plaid for Healthcare</span>
+    </div>
+    <div class="navbar-user">
+      <img id="user-avatar" class="user-avatar" src="" alt="User" style="display: none;">
+      <span id="user-name"></span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="welcome">
+      <h1>Welcome back, <span id="welcome-name">...</span>!</h1>
+      <p>Manage your connected health records and view your unified health timeline.</p>
+    </div>
+
+    <div class="connections">
+      <h2>🏥 Connected Health Records</h2>
+      <div id="view-all-container" style="display: none; margin-bottom: 30px;">
+        <a href="/all-health-records.html" class="connect-btn" style="display: block; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+          🔍 View All Health Records (Unified)
+        </a>
+        <p style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
+          See all your health data from all connected sources in one unified view
+        </p>
+      </div>
+      <div id="connections-list">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Loading your connections...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect Widget Modal Overlay -->
+  <div class="widget-overlay" id="widgetOverlay" onclick="closeWidget(event)">
+    <iframe id="widgetIframe" class="widget-iframe" src=""></iframe>
+  </div>
+
+  <script>
+    // Fetch user info
+    async function loadUser() {
+      try {
+        const response = await fetch('/api/user');
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = '/login.html';
+            return;
+          }
+          throw new Error('Failed to load user');
+        }
+
+        const user = await response.json();
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('welcome-name').textContent = user.name.split(' ')[0];
+
+        if (user.profile_picture) {
+          const avatar = document.getElementById('user-avatar');
+          avatar.src = user.profile_picture;
+          avatar.style.display = 'block';
+        }
+
+        loadConnections();
+      } catch (error) {
+        console.error('Error loading user:', error);
+        window.location.href = '/login.html';
+      }
+    }
+
+    // Fetch Epic connections
+    async function loadConnections() {
+      try {
+        const response = await fetch('/api/epic-connections');
+        if (!response.ok) throw new Error('Failed to load connections');
+
+        const connections = await response.json();
+        const container = document.getElementById('connections-list');
+
+        if (connections.length === 0) {
+          document.getElementById('view-all-container').style.display = 'none';
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🔌</div>
+              <p>You haven't connected any health records yet.</p>
+              <p style="margin-top: 10px;">Connect your health records to get started!</p>
+              <button class="connect-btn" onclick="openConnectWidget()">🏥 Link Health Records</button>
+            </div>
+          `;
+        } else {
+          document.getElementById('view-all-container').style.display = 'block';
+          const providerNames = {
+            'aetna': 'Aetna',
+            'anthem': 'Anthem',
+            'bcbsma': 'Blue Cross Blue Shield Massachusetts',
+            'bcbsmn': 'Blue Cross Blue Shield Minnesota',
+            'bcbstn': 'Blue Cross Blue Shield Tennessee',
+            'bluebutton': 'Blue Button 2.0 (Medicare)',
+            'cerner': 'Cerner (Oracle Health)',
+            'cigna': 'Cigna',
+            'epic': 'Epic MyChart',
+            'hcsc': 'HCSC (BCBS IL/TX/MT/NM/OK)',
+            'healow': 'Healow',
+            'humana': 'Humana',
+            'nextgen': 'NextGen Healthcare',
+            'smart': 'SMART Health IT'
+          };
+          container.innerHTML = connections.map(conn => `
+            <div class="connection-card">
+              <div class="connection-info">
+                <div class="connection-title">${providerNames[conn.provider] || conn.provider || 'Epic MyChart'}</div>
+                <div class="connection-subtitle">Patient ID: ${conn.patient_id}</div>
+                <div class="connection-subtitle">Last synced: ${new Date(conn.last_synced).toLocaleString()}</div>
+              </div>
+              <div class="connection-actions">
+                <a href="/health-records.html?connection=${conn.id}" class="view-btn">View Records</a>
+                <button class="disconnect-btn" onclick="disconnectEpic(${conn.id})">Disconnect</button>
+              </div>
+            </div>
+          `).join('') + `
+            <div style="margin-top: 20px;">
+              <button class="connect-btn" onclick="openConnectWidget()">+ Link More Providers</button>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading connections:', error);
+        document.getElementById('connections-list').innerHTML = `
+          <div class="empty-state">
+            <p style="color: #dc3545;">Failed to load connections. Please refresh the page.</p>
+          </div>
+        `;
+      }
+    }
+
+    async function disconnectEpic(connectionId) {
+      if (!confirm('Are you sure you want to disconnect this Epic account?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/epic-connections/${connectionId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to disconnect');
+
+        loadConnections();
+      } catch (error) {
+        console.error('Error disconnecting:', error);
+        alert('Failed to disconnect. Please try again.');
+      }
+    }
+
+    function logout() {
+      window.location.href = '/auth/logout';
+    }
+
+    // Connect Widget functions
+    function openConnectWidget() {
+      const overlay = document.getElementById('widgetOverlay');
+      const iframe = document.getElementById('widgetIframe');
+
+      iframe.src = '/connect-widget.html';
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    function closeWidget(event) {
+      // Only close if clicking the overlay (not the iframe)
+      if (event && event.target.id !== 'widgetOverlay') {
+        return;
+      }
+
+      const overlay = document.getElementById('widgetOverlay');
+      const iframe = document.getElementById('widgetIframe');
+
+      overlay.classList.remove('active');
+      iframe.src = ''; // Clear iframe
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+
+    // Listen for messages from widget iframe
+    window.addEventListener('message', function(event) {
+      if (event.data.type === 'CLOSE_WIDGET') {
+        closeWidget();
+      } else if (event.data.type === 'PROVIDER_SELECTED') {
+        // Close widget and navigate to provider
+        closeWidget();
+        window.location.href = event.data.url;
+      }
+    });
+
+    // Load user on page load
+    loadUser();
+  </script>
+</body>
+</html>

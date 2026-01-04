@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connection Complete</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      padding: 48px 32px;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      animation: scaleIn 0.5s ease-out 0.2s both;
+    }
+
+    .success-icon svg {
+      width: 40px;
+      height: 40px;
+      color: white;
+    }
+
+    .error-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      animation: scaleIn 0.5s ease-out 0.2s both;
+    }
+
+    .error-icon svg {
+      width: 40px;
+      height: 40px;
+      color: white;
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .provider-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f3f4f6;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #374151;
+      margin-bottom: 24px;
+    }
+
+    .provider-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .security-note {
+      margin-top: 24px;
+      font-size: 13px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading State -->
+  <div class="modal loading" id="loadingState">
+    <div class="spinner"></div>
+    <div class="title">Processing...</div>
+    <div class="subtitle">Please wait while we complete your connection.</div>
+  </div>
+
+  <!-- Success State -->
+  <div class="modal hidden" id="successState">
+    <div class="success-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h1 class="title">Successfully Connected!</h1>
+    <p class="subtitle">Your health records are now linked. You can close this window to return to the application.</p>
+    <div class="provider-badge" id="providerBadge">
+      <span class="dot"></span>
+      <span id="providerName">Provider</span>
+    </div>
+    <br><br>
+    <button class="button" onclick="closeWindow()">Done</button>
+    <div class="security-note">
+      <span>Your data is encrypted and secure</span>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div class="modal hidden" id="errorState">
+    <div class="error-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </div>
+    <h1 class="title">Connection Failed</h1>
+    <p class="subtitle" id="errorMessage">Something went wrong while connecting your health records. Please try again.</p>
+    <button class="button" onclick="tryAgain()">Try Again</button>
+  </div>
+
+  <script>
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const publicToken = urlParams.get('public_token');
+    const provider = urlParams.get('provider');
+    const error = urlParams.get('error');
+
+    // Provider display names
+    const providerNames = {
+      'epic': 'Epic MyChart',
+      'cerner': 'Oracle Health (Cerner)',
+      'smart': 'SMART Health IT',
+      'meditech': 'MEDITECH',
+      'healow': 'Healow (eClinicalWorks)',
+      'nextgen': 'NextGen Healthcare',
+      'humana': 'Humana',
+      'aetna': 'Aetna',
+      'anthem': 'Anthem',
+      'cigna': 'Cigna Healthcare',
+      'uhc': 'UnitedHealthcare',
+      'bcbsmn': 'BCBS Minnesota',
+      'bcbsma': 'BCBS Massachusetts',
+      'bcbstn': 'BCBS Tennessee',
+      'hcsc': 'HCSC',
+      'centene': 'Centene',
+      'molina': 'Molina Healthcare',
+      'bluebutton': 'Medicare (Blue Button)',
+      'kaiser': 'Kaiser Permanente',
+      'quest': 'Quest Diagnostics',
+      'labcorp': 'LabCorp'
+    };
+
+    // Initialize page
+    function init() {
+      const loadingState = document.getElementById('loadingState');
+      const successState = document.getElementById('successState');
+      const errorState = document.getElementById('errorState');
+
+      // Hide loading
+      loadingState.classList.add('hidden');
+
+      if (error) {
+        // Show error state
+        errorState.classList.remove('hidden');
+        document.getElementById('errorMessage').textContent = decodeURIComponent(error);
+      } else if (publicToken) {
+        // Show success state
+        successState.classList.remove('hidden');
+
+        // Set provider name
+        const displayName = providerNames[provider] || provider || 'Healthcare Provider';
+        document.getElementById('providerName').textContent = displayName;
+
+        // Send success message to parent window
+        sendToParent({
+          type: 'SUCCESS',
+          public_token: publicToken,
+          provider: provider
+        });
+      } else {
+        // No token or error - show generic error
+        errorState.classList.remove('hidden');
+        document.getElementById('errorMessage').textContent = 'No connection data received. Please try again.';
+      }
+    }
+
+    // Send message to parent window (for iframe embedding)
+    function sendToParent(data) {
+      if (window.opener) {
+        // Opened in popup
+        window.opener.postMessage({ source: 'pfh-connect-widget', ...data }, '*');
+      } else if (window.parent !== window) {
+        // Embedded in iframe
+        window.parent.postMessage({ source: 'pfh-connect-widget', ...data }, '*');
+      }
+    }
+
+    // Close window handler
+    function closeWindow() {
+      sendToParent({ type: 'CLOSE' });
+
+      if (window.opener) {
+        window.close();
+      } else if (window.parent !== window) {
+        // In iframe - just send close message (parent handles it)
+      } else {
+        // Standalone - redirect to home
+        window.location.href = '/';
+      }
+    }
+
+    // Try again handler
+    function tryAgain() {
+      sendToParent({ type: 'TRY_AGAIN' });
+
+      if (window.opener) {
+        window.close();
+      } else {
+        window.history.back();
+      }
+    }
+
+    // Listen for ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeWindow();
+      }
+    });
+
+    // Initialize on page load
+    init();
+  </script>
+</body>
+</html>
