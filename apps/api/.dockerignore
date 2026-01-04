@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+
+# Environment files (never include secrets in images)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Development files
+.git
+.gitignore
+*.md
+.vscode
+.idea
+
+# Docker files (not needed in container)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Test files
+test
+tests
+*.test.js
+*.spec.js
+coverage
+
+# OS files
+.DS_Store
+Thumbs.db

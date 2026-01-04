@@ -1,36 +1,30 @@
 /**
- * Rate Limiting Middleware (Placeholder)
+ * Rate Limiting Middleware
  *
- * This is a placeholder for rate limiting functionality.
- * In production, implement actual rate limiting using Redis or similar.
+ * Production-ready rate limiting using Redis for distributed systems.
+ * Falls back to in-memory tracking when Redis is unavailable.
  *
- * Suggested approach:
- * 1. Use Redis for distributed rate limiting
- * 2. Implement sliding window algorithm
- * 3. Different limits for different endpoints:
- *    - API endpoints: 1000 requests/minute
- *    - Widget token creation: 100 requests/minute
- *    - OAuth initiation: 50 requests/minute
- *
- * Popular packages:
- * - express-rate-limit (simple, in-memory)
- * - rate-limiter-flexible (Redis-based, more robust)
+ * Features:
+ * - Sliding window rate limiting
+ * - Per-API key and per-IP tracking
+ * - Configurable limits by endpoint type
+ * - Redis-based for distributed deployments
  */
 
 const logger = require('../logger');
+const { getClient, isRedisConnected } = require('../redis');
 
-// In-memory request tracking (for development/demo only)
-// In production, use Redis: https://github.com/animir/node-rate-limiter-flexible
-const requestCounts = new Map();
+// In-memory fallback for development or Redis failures
+const memoryStore = new Map();
 
-// Clean up old entries every minute
+// Clean up in-memory entries every minute
 setInterval(() => {
   const now = Date.now();
   const oneMinuteAgo = now - 60000;
 
-  for (const [key, data] of requestCounts.entries()) {
+  for (const [key, data] of memoryStore.entries()) {
     if (data.windowStart < oneMinuteAgo) {
-      requestCounts.delete(key);
+      memoryStore.delete(key);
     }
   }
 }, 60000);
@@ -61,6 +55,8 @@ const RATE_LIMITS = {
   }
 };
 
+const RATE_LIMIT_PREFIX = 'ratelimit:';
+
 /**
  * Get rate limit key for request
  * Uses API key ID if present, otherwise IP address
@@ -71,16 +67,73 @@ function getRateLimitKey(req, type) {
 }
 
 /**
- * Check if request is within rate limit (placeholder - always allows)
- * TODO: Implement actual rate limiting with Redis
+ * Check rate limit using Redis (sliding window)
+ * @param {string} key - Rate limit key
+ * @param {object} limit - Rate limit config
+ * @returns {Promise<{allowed: boolean, remaining: number, retryAfter?: number}>}
  */
-function checkRateLimit(key, limit) {
+async function checkRateLimitRedis(key, limit) {
+  const redis = getClient();
+  const redisKey = `${RATE_LIMIT_PREFIX}${key}`;
   const now = Date.now();
-  const data = requestCounts.get(key);
+  const windowStart = now - limit.windowMs;
+
+  try {
+    // Use Redis transaction for atomic operations
+    const multi = redis.multi();
+
+    // Remove old entries outside the window
+    multi.zRemRangeByScore(redisKey, 0, windowStart);
+
+    // Count requests in current window
+    multi.zCard(redisKey);
+
+    // Add current request
+    multi.zAdd(redisKey, { score: now, value: `${now}:${Math.random()}` });
+
+    // Set key expiration
+    multi.expire(redisKey, Math.ceil(limit.windowMs / 1000));
+
+    const results = await multi.exec();
+    const count = results[1]; // zCard result
+
+    if (count >= limit.max) {
+      // Get oldest entry to calculate retry time
+      const oldest = await redis.zRange(redisKey, 0, 0, { BY: 'SCORE' });
+      let retryAfter = limit.windowMs / 1000;
+
+      if (oldest.length > 0) {
+        const oldestTime = parseInt(oldest[0].split(':')[0], 10);
+        retryAfter = Math.ceil((oldestTime + limit.windowMs - now) / 1000);
+      }
+
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfter: Math.max(1, retryAfter)
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: Math.max(0, limit.max - count - 1)
+    };
+  } catch (error) {
+    logger.warn('Redis rate limit error, falling back to memory', { error: error.message });
+    return checkRateLimitMemory(key, limit);
+  }
+}
+
+/**
+ * Check rate limit using in-memory store (fallback)
+ */
+function checkRateLimitMemory(key, limit) {
+  const now = Date.now();
+  const data = memoryStore.get(key);
 
   if (!data || data.windowStart < now - limit.windowMs) {
     // New window
-    requestCounts.set(key, {
+    memoryStore.set(key, {
       count: 1,
       windowStart: now
     });
@@ -88,9 +141,8 @@ function checkRateLimit(key, limit) {
   }
 
   if (data.count >= limit.max) {
-    // Rate limited - but currently just logging, not blocking
     return {
-      allowed: true, // Change to false when enabling rate limiting
+      allowed: false,
       remaining: 0,
       retryAfter: Math.ceil((data.windowStart + limit.windowMs - now) / 1000)
     };
@@ -101,43 +153,53 @@ function checkRateLimit(key, limit) {
 }
 
 /**
- * Create rate limit middleware (placeholder)
+ * Create rate limit middleware
  * @param {string} type - Rate limit type: 'default', 'widget', 'oauth', 'sensitive'
+ * @param {object} options - Override options
+ * @param {boolean} options.enforce - Whether to enforce limits (default: true in production)
  */
-function rateLimit(type = 'default') {
-  const limit = RATE_LIMITS[type] || RATE_LIMITS.default;
+function rateLimit(type = 'default', options = {}) {
+  const limit = { ...RATE_LIMITS[type] || RATE_LIMITS.default };
+  const enforce = options.enforce ?? process.env.NODE_ENV === 'production';
 
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const key = getRateLimitKey(req, type);
-    const result = checkRateLimit(key, limit);
 
-    // Add rate limit headers (even though not enforcing)
+    let result;
+    if (isRedisConnected()) {
+      result = await checkRateLimitRedis(key, limit);
+    } else {
+      result = checkRateLimitMemory(key, limit);
+    }
+
+    // Add rate limit headers
     res.setHeader('X-RateLimit-Limit', limit.max);
     res.setHeader('X-RateLimit-Remaining', result.remaining);
+    res.setHeader('X-RateLimit-Window', limit.windowMs / 1000);
 
     if (result.retryAfter) {
       res.setHeader('X-RateLimit-Reset', Math.floor((Date.now() + result.retryAfter * 1000) / 1000));
+      res.setHeader('Retry-After', result.retryAfter);
     }
 
-    // Log rate limit status
-    if (result.remaining <= 0) {
-      logger.warn('Rate limit would be exceeded (not enforcing)', {
+    if (!result.allowed) {
+      logger.warn('Rate limit exceeded', {
         key,
         type,
         ip: req.ip,
         apiKeyId: req.apiKeyId,
-        path: req.path
+        path: req.path,
+        enforced: enforce
       });
-    }
 
-    // TODO: When enabling rate limiting, uncomment this block:
-    // if (!result.allowed) {
-    //   return res.status(429).json({
-    //     error: limit.message,
-    //     code: 'RATE_LIMIT_EXCEEDED',
-    //     retryAfter: result.retryAfter
-    //   });
-    // }
+      if (enforce) {
+        return res.status(429).json({
+          error: limit.message,
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: result.retryAfter
+        });
+      }
+    }
 
     next();
   };
@@ -161,7 +223,8 @@ function logApiUsage(req, res, next) {
       duration: `${duration}ms`,
       ip: req.ip,
       apiKeyId: req.apiKeyId,
-      authMethod: req.authMethod
+      authMethod: req.authMethod,
+      requestId: req.id
     });
   });
 
@@ -171,17 +234,43 @@ function logApiUsage(req, res, next) {
 /**
  * Get current rate limit status for an identifier
  */
-function getRateLimitStatus(identifier, type = 'default') {
+async function getRateLimitStatus(identifier, type = 'default') {
   const key = `${type}:${identifier}`;
   const limit = RATE_LIMITS[type] || RATE_LIMITS.default;
-  const data = requestCounts.get(key);
+
+  if (isRedisConnected()) {
+    const redis = getClient();
+    const redisKey = `${RATE_LIMIT_PREFIX}${key}`;
+    const now = Date.now();
+    const windowStart = now - limit.windowMs;
+
+    try {
+      // Clean and count
+      await redis.zRemRangeByScore(redisKey, 0, windowStart);
+      const count = await redis.zCard(redisKey);
+
+      return {
+        limit: limit.max,
+        remaining: Math.max(0, limit.max - count),
+        windowMs: limit.windowMs,
+        enforced: process.env.NODE_ENV === 'production',
+        backend: 'redis'
+      };
+    } catch (error) {
+      logger.warn('Failed to get Redis rate limit status', { error: error.message });
+    }
+  }
+
+  // Memory fallback
+  const data = memoryStore.get(key);
 
   if (!data) {
     return {
       limit: limit.max,
       remaining: limit.max,
       windowMs: limit.windowMs,
-      enforced: false // Rate limiting not yet enforced
+      enforced: process.env.NODE_ENV === 'production',
+      backend: 'memory'
     };
   }
 
@@ -191,7 +280,8 @@ function getRateLimitStatus(identifier, type = 'default') {
       limit: limit.max,
       remaining: limit.max,
       windowMs: limit.windowMs,
-      enforced: false
+      enforced: process.env.NODE_ENV === 'production',
+      backend: 'memory'
     };
   }
 
@@ -200,7 +290,8 @@ function getRateLimitStatus(identifier, type = 'default') {
     remaining: Math.max(0, limit.max - data.count),
     windowMs: limit.windowMs,
     resetAt: new Date(data.windowStart + limit.windowMs).toISOString(),
-    enforced: false
+    enforced: process.env.NODE_ENV === 'production',
+    backend: 'memory'
   };
 }
 

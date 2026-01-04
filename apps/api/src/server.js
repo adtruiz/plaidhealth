@@ -15,6 +15,9 @@ const { deduplicateMedications, deduplicateConditions, deduplicateLabs, deduplic
 const { processLabTrendsData, processMedicationTimelineData, processHealthTimelineData, processConditionStats, processOverviewStats } = require('./chart-helpers');
 const logger = require('./logger');
 const { normalizePatient, normalizeLabs, normalizeMedications, normalizeConditions, normalizeEncounters, normalizeClaims } = require('./normalizers');
+const { initializeRedis, isRedisConnected, healthCheck: redisHealthCheck, shutdown: shutdownRedis } = require('./redis');
+const { loadConfig, getConfigSummary } = require('./config');
+const { getCacheStats } = require('./fhir-cache');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,28 +25,60 @@ const PORT = process.env.PORT || 3000;
 // Trust proxy - required for Railway to properly handle cookies
 app.set('trust proxy', 1);
 
+// Request ID middleware for distributed tracing
+app.use((req, res, next) => {
+  // Use existing request ID from header or generate new one
+  req.id = req.headers['x-request-id'] || `req_${crypto.randomBytes(12).toString('hex')}`;
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
+
 // Parse JSON bodies
 app.use(express.json());
 
-// Configure session with PostgreSQL store
+// Configure session store (Redis preferred, PostgreSQL fallback)
 const pgSession = require('connect-pg-simple')(session);
 const { pool } = require('./db');
 
-app.use(session({
-  store: new pgSession({
+// Session store will be configured after Redis initialization
+let sessionStore;
+
+function createSessionStore() {
+  // Try Redis first if connected
+  if (isRedisConnected()) {
+    const RedisStore = require('connect-redis').default;
+    const { getClient } = require('./redis');
+    logger.info('Using Redis for session storage');
+    return new RedisStore({
+      client: getClient(),
+      prefix: 'session:'
+    });
+  }
+
+  // Fall back to PostgreSQL
+  logger.info('Using PostgreSQL for session storage');
+  return new pgSession({
     pool: pool,
     tableName: 'session'
-  }),
+  });
+}
+
+// Configure session middleware (store may be updated after Redis init)
+const sessionMiddleware = session({
+  store: new pgSession({ pool: pool, tableName: 'session' }), // Initial store
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  name: 'plaidhealth.sid',
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     secure: process.env.RAILWAY_ENVIRONMENT ? true : false,
     httpOnly: true,
     sameSite: 'lax'
   }
-}));
+});
+
+app.use(sessionMiddleware);
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -245,9 +280,91 @@ function generatePKCE() {
   return { codeVerifier, codeChallenge };
 }
 
-// Route: Health check
+// Route: Health check (liveness probe)
+// Returns 200 if the server process is running
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'FHIR prototype server is running' });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
+// Route: Readiness probe with dependency checks
+// Returns 200 only if all critical dependencies are healthy
+app.get('/ready', async (req, res) => {
+  const checks = {
+    database: { healthy: false },
+    redis: { healthy: false, optional: true }
+  };
+
+  // Check PostgreSQL
+  try {
+    const start = Date.now();
+    await pool.query('SELECT 1');
+    checks.database = {
+      healthy: true,
+      latencyMs: Date.now() - start
+    };
+  } catch (error) {
+    checks.database = {
+      healthy: false,
+      error: error.message
+    };
+  }
+
+  // Check Redis
+  try {
+    const redisCheck = await redisHealthCheck();
+    checks.redis = {
+      ...redisCheck,
+      optional: true
+    };
+  } catch (error) {
+    checks.redis = {
+      healthy: false,
+      error: error.message,
+      optional: true
+    };
+  }
+
+  // Determine overall status
+  // Database is required, Redis is optional
+  const isReady = checks.database.healthy;
+  const status = isReady ? 'ready' : 'not_ready';
+
+  res.status(isReady ? 200 : 503).json({
+    status,
+    timestamp: new Date().toISOString(),
+    checks
+  });
+});
+
+// Route: Detailed health status (for monitoring dashboards)
+app.get('/health/details', async (req, res) => {
+  const [dbCheck, redisCheck, cacheStats] = await Promise.all([
+    pool.query('SELECT 1').then(() => ({ healthy: true })).catch(e => ({ healthy: false, error: e.message })),
+    redisHealthCheck(),
+    getCacheStats()
+  ]);
+
+  res.json({
+    status: dbCheck.healthy ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    memory: {
+      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024)
+    },
+    dependencies: {
+      database: dbCheck,
+      redis: redisCheck,
+      cache: cacheStats
+    },
+    config: getConfigSummary()
+  });
 });
 
 /**
@@ -3211,25 +3328,87 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server (only for local development)
-if (require.main === module) {
+// Graceful shutdown handler
+async function gracefulShutdown(signal) {
+  logger.info(`Received ${signal}, starting graceful shutdown...`);
+
+  // Stop accepting new connections
+  if (server) {
+    server.close(() => {
+      logger.info('HTTP server closed');
+    });
+  }
+
+  // Close Redis connection
+  try {
+    await shutdownRedis();
+    logger.info('Redis connection closed');
+  } catch (error) {
+    logger.warn('Error closing Redis', { error: error.message });
+  }
+
+  // Close database pool
+  try {
+    await pool.end();
+    logger.info('Database pool closed');
+  } catch (error) {
+    logger.warn('Error closing database pool', { error: error.message });
+  }
+
+  logger.info('Graceful shutdown complete');
+  process.exit(0);
+}
+
+let server;
+
+// Start server
+async function startServer() {
+  // Validate configuration
+  loadConfig();
+
+  // Initialize Redis (non-blocking - app works without it)
+  try {
+    await initializeRedis();
+    logger.info('Redis initialized successfully');
+  } catch (error) {
+    logger.warn('Redis initialization failed - continuing without Redis', {
+      error: error.message
+    });
+  }
+
   const HOST = process.env.RAILWAY_ENVIRONMENT ? '0.0.0.0' : 'localhost';
-  app.listen(PORT, HOST, () => {
-    logger.info('🏥 FHIR Prototype Server Started', {
+
+  server = app.listen(PORT, HOST, () => {
+    logger.info('PlaidHealth API Server Started', {
       port: PORT,
       host: HOST,
-      environment: process.env.RAILWAY_ENVIRONMENT || 'local',
-      healthCheck: '/health'
+      environment: process.env.NODE_ENV || 'development',
+      redis: isRedisConnected() ? 'connected' : 'disconnected',
+      endpoints: {
+        health: '/health',
+        ready: '/ready',
+        healthDetails: '/health/details'
+      }
     });
 
-    if (!process.env.RAILWAY_ENVIRONMENT) {
-      logger.info('To test Epic integration:', {
-        step1: 'Click "Connect Epic MyChart"',
-        step2: 'Log in with Epic sandbox credentials',
+    if (!process.env.RAILWAY_ENVIRONMENT && process.env.NODE_ENV !== 'production') {
+      logger.info('Development mode - Epic sandbox credentials:', {
         username: 'fhirderrick',
         password: 'epicepic1'
       });
     }
+  });
+
+  // Register shutdown handlers
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
+
+// Start server (only when run directly)
+if (require.main === module) {
+  startServer().catch(error => {
+    logger.error('Failed to start server', { error: error.message, stack: error.stack });
+    process.exit(1);
   });
 }
 
