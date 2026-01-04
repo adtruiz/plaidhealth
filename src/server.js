@@ -1142,14 +1142,19 @@ app.get('/api/v1/patient', authenticate(['read']), async (req, res) => {
 });
 
 // Route: Get normalized labs only
+// Query params:
+//   - deduplicate: 'true' (default) or 'false' - merge duplicates from multiple sources
+//   - include_originals: 'true' or 'false' (default) - include original records in response
+//   - limit: number (default 100)
 app.get('/api/v1/labs', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const includeRaw = req.query.include_raw === 'true';
+    const deduplicate = req.query.deduplicate !== 'false'; // default true
+    const includeOriginals = req.query.include_originals === 'true';
     const limit = parseInt(req.query.limit) || 100;
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [] } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
     }
 
     const allLabs = [];
@@ -1162,19 +1167,45 @@ app.get('/api/v1/labs', authenticate(['read']), async (req, res) => {
         });
         const observations = (response.data.entry || []).map(e => e.resource);
         const normalized = normalizeLabs(observations, connection.provider);
-        if (!includeRaw) normalized.forEach(l => delete l._raw);
         allLabs.push(...normalized);
       } catch (err) {
         logger.error('Error fetching labs', { connectionId: connection.id, error: err.message });
       }
     }
 
-    // Sort by date descending
-    allLabs.sort((a, b) => new Date(b.date) - new Date(a.date));
+    let responseData;
+    if (deduplicate && connections.length > 1) {
+      // Deduplicate and return merged structure
+      const deduped = deduplicateLabs(allLabs);
+      // Sort by merged date descending
+      deduped.sort((a, b) => new Date(b.merged.date) - new Date(a.merged.date));
+
+      responseData = deduped.slice(0, limit).map(item => {
+        const result = {
+          ...item.merged,
+          sources: item.sources,
+          sourceCount: item.sources.length
+        };
+        if (includeOriginals) {
+          result.originals = item.originals;
+        }
+        return result;
+      });
+    } else {
+      // No deduplication - sort and return directly
+      allLabs.sort((a, b) => new Date(b.date) - new Date(a.date));
+      responseData = allLabs.slice(0, limit);
+    }
 
     res.json({
-      data: allLabs.slice(0, limit),
-      meta: { total: allLabs.length, sources: connections.map(c => c.provider), normalizedAt: new Date().toISOString() }
+      data: responseData,
+      meta: {
+        total: responseData.length,
+        totalBeforeDedup: allLabs.length,
+        sources: connections.map(c => c.provider),
+        deduplicated: deduplicate && connections.length > 1,
+        normalizedAt: new Date().toISOString()
+      }
     });
   } catch (error) {
     logger.error('Error in v1/labs', { error: error.message });
@@ -1183,14 +1214,19 @@ app.get('/api/v1/labs', authenticate(['read']), async (req, res) => {
 });
 
 // Route: Get normalized medications only
+// Query params:
+//   - deduplicate: 'true' (default) or 'false' - merge duplicates from multiple sources
+//   - include_originals: 'true' or 'false' (default) - include original records in response
+//   - status: filter by medication status ('active', 'completed', etc.)
 app.get('/api/v1/medications', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const includeRaw = req.query.include_raw === 'true';
+    const deduplicate = req.query.deduplicate !== 'false'; // default true
+    const includeOriginals = req.query.include_originals === 'true';
     const status = req.query.status; // 'active', 'completed', etc.
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [] } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
     }
 
     const allMeds = [];
@@ -1203,25 +1239,54 @@ app.get('/api/v1/medications', authenticate(['read']), async (req, res) => {
         });
         const medications = (response.data.entry || []).map(e => e.resource);
         const normalized = normalizeMedications(medications, connection.provider);
-        if (!includeRaw) normalized.forEach(m => delete m._raw);
         allMeds.push(...normalized);
       } catch (err) {
         logger.error('Error fetching medications', { connectionId: connection.id, error: err.message });
       }
     }
 
-    // Filter by status if specified
-    let filteredMeds = allMeds;
-    if (status) {
-      filteredMeds = allMeds.filter(m => m.status === status);
+    let responseData;
+    if (deduplicate && connections.length > 1) {
+      // Deduplicate and return merged structure
+      const deduped = deduplicateMedications(allMeds);
+      // Sort by merged date descending
+      deduped.sort((a, b) => new Date(b.merged.prescribedDate) - new Date(a.merged.prescribedDate));
+
+      responseData = deduped.map(item => {
+        const result = {
+          ...item.merged,
+          sources: item.sources,
+          sourceCount: item.sources.length
+        };
+        if (includeOriginals) {
+          result.originals = item.originals;
+        }
+        return result;
+      });
+
+      // Filter by status after dedup (using merged status)
+      if (status) {
+        responseData = responseData.filter(m => m.status === status);
+      }
+    } else {
+      // No deduplication - filter and sort
+      let filteredMeds = allMeds;
+      if (status) {
+        filteredMeds = allMeds.filter(m => m.status === status);
+      }
+      filteredMeds.sort((a, b) => new Date(b.prescribedDate) - new Date(a.prescribedDate));
+      responseData = filteredMeds;
     }
 
-    // Sort by date descending
-    filteredMeds.sort((a, b) => new Date(b.prescribedDate) - new Date(a.prescribedDate));
-
     res.json({
-      data: filteredMeds,
-      meta: { total: filteredMeds.length, sources: connections.map(c => c.provider), normalizedAt: new Date().toISOString() }
+      data: responseData,
+      meta: {
+        total: responseData.length,
+        totalBeforeDedup: allMeds.length,
+        sources: connections.map(c => c.provider),
+        deduplicated: deduplicate && connections.length > 1,
+        normalizedAt: new Date().toISOString()
+      }
     });
   } catch (error) {
     logger.error('Error in v1/medications', { error: error.message });
@@ -1230,14 +1295,19 @@ app.get('/api/v1/medications', authenticate(['read']), async (req, res) => {
 });
 
 // Route: Get normalized conditions only
+// Query params:
+//   - deduplicate: 'true' (default) or 'false' - merge duplicates from multiple sources
+//   - include_originals: 'true' or 'false' (default) - include original records in response
+//   - status: filter by clinical status ('active', 'inactive', 'resolved')
 app.get('/api/v1/conditions', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const includeRaw = req.query.include_raw === 'true';
+    const deduplicate = req.query.deduplicate !== 'false'; // default true
+    const includeOriginals = req.query.include_originals === 'true';
     const status = req.query.status; // 'active', 'inactive', 'resolved'
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [] } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
     }
 
     const allConditions = [];
@@ -1250,22 +1320,51 @@ app.get('/api/v1/conditions', authenticate(['read']), async (req, res) => {
         });
         const conditions = (response.data.entry || []).map(e => e.resource);
         const normalized = normalizeConditions(conditions, connection.provider);
-        if (!includeRaw) normalized.forEach(c => delete c._raw);
         allConditions.push(...normalized);
       } catch (err) {
         logger.error('Error fetching conditions', { connectionId: connection.id, error: err.message });
       }
     }
 
-    // Filter by status if specified
-    let filteredConditions = allConditions;
-    if (status) {
-      filteredConditions = allConditions.filter(c => c.clinicalStatus === status);
+    let responseData;
+    if (deduplicate && connections.length > 1) {
+      // Deduplicate and return merged structure
+      const deduped = deduplicateConditions(allConditions);
+
+      responseData = deduped.map(item => {
+        const result = {
+          ...item.merged,
+          sources: item.sources,
+          sourceCount: item.sources.length
+        };
+        if (includeOriginals) {
+          result.originals = item.originals;
+        }
+        return result;
+      });
+
+      // Filter by status after dedup (using merged clinicalStatus)
+      if (status) {
+        responseData = responseData.filter(c => c.clinicalStatus === status);
+      }
+    } else {
+      // No deduplication - filter directly
+      let filteredConditions = allConditions;
+      if (status) {
+        filteredConditions = allConditions.filter(c => c.clinicalStatus === status);
+      }
+      responseData = filteredConditions;
     }
 
     res.json({
-      data: filteredConditions,
-      meta: { total: filteredConditions.length, sources: connections.map(c => c.provider), normalizedAt: new Date().toISOString() }
+      data: responseData,
+      meta: {
+        total: responseData.length,
+        totalBeforeDedup: allConditions.length,
+        sources: connections.map(c => c.provider),
+        deduplicated: deduplicate && connections.length > 1,
+        normalizedAt: new Date().toISOString()
+      }
     });
   } catch (error) {
     logger.error('Error in v1/conditions', { error: error.message });
@@ -1274,14 +1373,19 @@ app.get('/api/v1/conditions', authenticate(['read']), async (req, res) => {
 });
 
 // Route: Get normalized encounters only
+// Query params:
+//   - deduplicate: 'true' (default) or 'false' - merge duplicates from multiple sources
+//   - include_originals: 'true' or 'false' (default) - include original records in response
+//   - limit: number (default 50)
 app.get('/api/v1/encounters', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const includeRaw = req.query.include_raw === 'true';
+    const deduplicate = req.query.deduplicate !== 'false'; // default true
+    const includeOriginals = req.query.include_originals === 'true';
     const limit = parseInt(req.query.limit) || 50;
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [] } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
     }
 
     const allEncounters = [];
@@ -1294,19 +1398,45 @@ app.get('/api/v1/encounters', authenticate(['read']), async (req, res) => {
         });
         const encounters = (response.data.entry || []).map(e => e.resource);
         const normalized = normalizeEncounters(encounters, connection.provider);
-        if (!includeRaw) normalized.forEach(e => delete e._raw);
         allEncounters.push(...normalized);
       } catch (err) {
         logger.error('Error fetching encounters', { connectionId: connection.id, error: err.message });
       }
     }
 
-    // Sort by date descending
-    allEncounters.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+    let responseData;
+    if (deduplicate && connections.length > 1) {
+      // Deduplicate and return merged structure
+      const deduped = deduplicateEncounters(allEncounters);
+      // Sort by merged date descending
+      deduped.sort((a, b) => new Date(b.merged.startDate) - new Date(a.merged.startDate));
+
+      responseData = deduped.slice(0, limit).map(item => {
+        const result = {
+          ...item.merged,
+          sources: item.sources,
+          sourceCount: item.sources.length
+        };
+        if (includeOriginals) {
+          result.originals = item.originals;
+        }
+        return result;
+      });
+    } else {
+      // No deduplication - sort and return directly
+      allEncounters.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+      responseData = allEncounters.slice(0, limit);
+    }
 
     res.json({
-      data: allEncounters.slice(0, limit),
-      meta: { total: allEncounters.length, sources: connections.map(c => c.provider), normalizedAt: new Date().toISOString() }
+      data: responseData,
+      meta: {
+        total: responseData.length,
+        totalBeforeDedup: allEncounters.length,
+        sources: connections.map(c => c.provider),
+        deduplicated: deduplicate && connections.length > 1,
+        normalizedAt: new Date().toISOString()
+      }
     });
   } catch (error) {
     logger.error('Error in v1/encounters', { error: error.message });

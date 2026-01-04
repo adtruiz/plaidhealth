@@ -3,11 +3,45 @@
  *
  * Centralizes all chart data processing logic for the hybrid approach.
  * Backend processes raw FHIR data and returns Chart.js-ready formats.
+ *
+ * Supports both:
+ * - New merged format (from deduplication): { merged, sources, sourceCount, originals }
+ * - Legacy flat format (single source or dedup disabled): direct FHIR objects
  */
+
+/**
+ * Helper: Extract lab data from either merged or flat format
+ */
+function extractLabData(lab) {
+  // Check if this is a merged format (has sources array and merged data)
+  if (lab.sources && Array.isArray(lab.sources)) {
+    // Merged format - data is flattened from merged object
+    return {
+      name: lab.name || 'Unknown',
+      date: lab.date ? new Date(lab.date) : null,
+      value: lab.value,
+      unit: lab.unit,
+      loincCode: lab.loincCode,
+      sources: lab.sources,
+      sourceCount: lab.sourceCount || lab.sources.length
+    };
+  }
+  // Legacy FHIR format
+  return {
+    name: lab.code?.text || lab.code?.coding?.[0]?.display || lab.name || 'Unknown',
+    date: lab.effectiveDateTime ? new Date(lab.effectiveDateTime) : (lab.date ? new Date(lab.date) : null),
+    value: lab.valueQuantity?.value ?? lab.value,
+    unit: lab.valueQuantity?.unit || lab.unit,
+    loincCode: lab.code?.coding?.find(c => c.system?.includes('loinc'))?.code || lab.loincCode,
+    sources: lab._source?.source ? [lab._source.source] : ['Unknown'],
+    sourceCount: 1
+  };
+}
 
 /**
  * Process lab results for trend visualization
  * Groups labs by test name and returns Chart.js line chart format
+ * Works with both merged and raw FHIR data
  */
 function processLabTrendsData(labs, options = {}) {
   const { limit = 5, mode = 'top' } = options;
@@ -19,30 +53,37 @@ function processLabTrendsData(labs, options = {}) {
     };
   }
 
-  // Group labs by test name
+  // Group labs by test name (or LOINC code for better matching)
   const labsByName = {};
   labs.forEach(lab => {
-    const labName = lab.code?.text || lab.code?.coding?.[0]?.display || 'Unknown';
-    if (!labsByName[labName]) {
-      labsByName[labName] = [];
+    const extracted = extractLabData(lab);
+    const key = extracted.loincCode || extracted.name; // Use LOINC code if available for grouping
+
+    if (!labsByName[key]) {
+      labsByName[key] = {
+        displayName: extracted.name,
+        unit: extracted.unit,
+        dataPoints: []
+      };
     }
-    if (lab.valueQuantity && lab.effectiveDateTime) {
-      labsByName[labName].push({
-        date: new Date(lab.effectiveDateTime),
-        value: lab.valueQuantity.value,
-        unit: lab.valueQuantity.unit,
-        source: lab._source?.source || 'Unknown'
+
+    if (extracted.value != null && extracted.date) {
+      labsByName[key].dataPoints.push({
+        date: extracted.date,
+        value: extracted.value,
+        sources: extracted.sources,
+        sourceCount: extracted.sourceCount
       });
     }
   });
 
   // Filter to labs with multiple data points (for trend analysis)
   const trendableLabs = Object.entries(labsByName)
-    .filter(([name, data]) => data.length > 1)
-    .map(([name, data]) => ({
-      name,
-      data: data.sort((a, b) => a.date - b.date),
-      unit: data[0].unit
+    .filter(([key, labData]) => labData.dataPoints.length > 1)
+    .map(([key, labData]) => ({
+      name: labData.displayName,
+      data: labData.dataPoints.sort((a, b) => a.date - b.date),
+      unit: labData.unit
     }))
     .sort((a, b) => b.data.length - a.data.length);
 
@@ -58,11 +99,12 @@ function processLabTrendsData(labs, options = {}) {
     const color = colors[index % colors.length];
 
     return {
-      label: `${lab.name} (${lab.unit})`,
+      label: `${lab.name} (${lab.unit || ''})`.trim(),
       data: lab.data.map(point => ({
         x: point.date.toISOString(),
         y: point.value,
-        source: point.source
+        sources: point.sources,
+        sourceCount: point.sourceCount
       })),
       borderColor: color,
       backgroundColor: color + '20',
@@ -74,8 +116,14 @@ function processLabTrendsData(labs, options = {}) {
 
   // Calculate stats
   const allDates = selectedLabs.flatMap(lab => lab.data.map(d => d.date));
+  const totalSourceCount = labs.reduce((sum, lab) => {
+    const extracted = extractLabData(lab);
+    return sum + (extracted.sourceCount || 1);
+  }, 0);
+
   const stats = {
     totalLabs: labs.length,
+    totalFromSources: totalSourceCount,
     uniqueTests: Object.keys(labsByName).length,
     trendableTests: trendableLabs.length,
     displayedTests: selectedLabs.length,
@@ -89,8 +137,39 @@ function processLabTrendsData(labs, options = {}) {
 }
 
 /**
+ * Helper: Extract medication data from either merged or flat format
+ */
+function extractMedicationData(med) {
+  // Check if this is a merged format (has sources array)
+  if (med.sources && Array.isArray(med.sources)) {
+    return {
+      name: med.name || 'Unknown medication',
+      prescribedDate: med.prescribedDate ? new Date(med.prescribedDate) : null,
+      status: med.status || 'unknown',
+      dosage: med.dosage,
+      rxnormCode: med.rxnormCode,
+      sources: med.sources,
+      sourceCount: med.sourceCount || med.sources.length
+    };
+  }
+  // Legacy FHIR format
+  return {
+    name: med.medicationCodeableConcept?.text ||
+          med.medicationCodeableConcept?.coding?.[0]?.display ||
+          med.name || 'Unknown medication',
+    prescribedDate: med.authoredOn ? new Date(med.authoredOn) : (med.prescribedDate ? new Date(med.prescribedDate) : null),
+    status: med.status || 'unknown',
+    dosage: med.dosageInstruction?.[0]?.text || med.dosage,
+    rxnormCode: med.medicationCodeableConcept?.coding?.find(c => c.system?.includes('rxnorm'))?.code || med.rxnormCode,
+    sources: med._source?.source ? [med._source.source] : ['Unknown'],
+    sourceCount: 1
+  };
+}
+
+/**
  * Process medications for timeline visualization
  * Returns data for stacked bar chart showing active/inactive meds over time
+ * Works with both merged and raw FHIR data
  */
 function processMedicationTimelineData(medications) {
   if (!medications || medications.length === 0) {
@@ -103,20 +182,27 @@ function processMedicationTimelineData(medications) {
 
   // Group medications by month
   const medsByMonth = {};
+  let totalFromSources = 0;
+
   medications.forEach(med => {
-    if (med.authoredOn) {
-      const date = new Date(med.authoredOn);
+    const extracted = extractMedicationData(med);
+    totalFromSources += extracted.sourceCount;
+
+    if (extracted.prescribedDate) {
+      const date = extracted.prescribedDate;
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       if (!medsByMonth[monthKey]) {
-        medsByMonth[monthKey] = { active: 0, inactive: 0, date: date };
+        medsByMonth[monthKey] = { active: 0, inactive: 0, sources: new Set(), date: date };
       }
 
-      if (med.status === 'active') {
+      if (extracted.status === 'active') {
         medsByMonth[monthKey].active++;
       } else {
         medsByMonth[monthKey].inactive++;
       }
+
+      extracted.sources.forEach(s => medsByMonth[monthKey].sources.add(s));
     }
   });
 
@@ -149,9 +235,14 @@ function processMedicationTimelineData(medications) {
   ];
 
   // Calculate stats
-  const activeCount = medications.filter(m => m.status === 'active').length;
+  const activeCount = medications.filter(med => {
+    const extracted = extractMedicationData(med);
+    return extracted.status === 'active';
+  }).length;
+
   const stats = {
     totalMedications: medications.length,
+    totalFromSources,
     activeCount,
     inactiveCount: medications.length - activeCount,
     monthsTracked: sortedMonths.length
@@ -161,70 +252,117 @@ function processMedicationTimelineData(medications) {
 }
 
 /**
+ * Helper: Extract condition data from either merged or flat format
+ */
+function extractConditionData(cond) {
+  if (cond.sources && Array.isArray(cond.sources)) {
+    return {
+      name: cond.name || 'Unknown condition',
+      onsetDate: cond.onsetDate ? new Date(cond.onsetDate) : null,
+      clinicalStatus: cond.clinicalStatus || 'unknown',
+      icd10Code: cond.icd10Code,
+      sources: cond.sources,
+      sourceCount: cond.sourceCount || cond.sources.length
+    };
+  }
+  return {
+    name: cond.code?.text || cond.code?.coding?.[0]?.display || cond.name || 'Unknown condition',
+    onsetDate: cond.onsetDateTime ? new Date(cond.onsetDateTime) : (cond.onsetDate ? new Date(cond.onsetDate) : null),
+    clinicalStatus: cond.clinicalStatus?.coding?.[0]?.code || cond.clinicalStatus || 'unknown',
+    icd10Code: cond.code?.coding?.find(c => c.system?.includes('icd'))?.code || cond.icd10Code,
+    sources: cond._source?.source ? [cond._source.source] : ['Unknown'],
+    sourceCount: 1
+  };
+}
+
+/**
+ * Helper: Extract encounter data from either merged or flat format
+ */
+function extractEncounterData(enc) {
+  if (enc.sources && Array.isArray(enc.sources)) {
+    return {
+      type: enc.type || 'Unknown encounter',
+      startDate: enc.startDate ? new Date(enc.startDate) : null,
+      location: enc.location || 'Location not specified',
+      status: enc.status || 'unknown',
+      sources: enc.sources,
+      sourceCount: enc.sourceCount || enc.sources.length
+    };
+  }
+  return {
+    type: enc.type?.[0]?.text || enc.type?.[0]?.coding?.[0]?.display || enc.type || 'Unknown encounter',
+    startDate: enc.period?.start ? new Date(enc.period.start) : (enc.startDate ? new Date(enc.startDate) : null),
+    location: enc.location?.[0]?.location?.display || enc.location || 'Location not specified',
+    status: enc.status || 'unknown',
+    sources: enc._source?.source ? [enc._source.source] : ['Unknown'],
+    sourceCount: 1
+  };
+}
+
+/**
  * Process all health data for unified timeline
  * Combines medications, conditions, and encounters into chronological timeline
+ * Works with both merged and raw FHIR data
  */
 function processHealthTimelineData(medications, conditions, encounters, options = {}) {
   const { limit = 50 } = options;
   const timeline = [];
+  const allSources = new Set();
 
   // Add medications
-  medications.forEach(med => {
-    if (med.authoredOn) {
-      const medName = med.medicationCodeableConcept?.text ||
-                     med.medicationCodeableConcept?.coding?.[0]?.display ||
-                     'Unknown medication';
-
+  (medications || []).forEach(med => {
+    const extracted = extractMedicationData(med);
+    if (extracted.prescribedDate) {
       timeline.push({
-        date: new Date(med.authoredOn),
+        date: extracted.prescribedDate,
         type: 'medication',
         icon: '💊',
-        title: medName,
-        description: med.dosageInstruction?.[0]?.text || 'No dosage information',
-        status: med.status || 'unknown',
-        source: med._source?.source || 'Unknown',
+        title: extracted.name,
+        description: extracted.dosage || 'No dosage information',
+        status: extracted.status,
+        sources: extracted.sources,
+        sourceCount: extracted.sourceCount,
         id: med.id
       });
+      extracted.sources.forEach(s => allSources.add(s));
     }
   });
 
   // Add conditions
-  conditions.forEach(condition => {
-    if (condition.onsetDateTime) {
-      const conditionName = condition.code?.text ||
-                           condition.code?.coding?.[0]?.display ||
-                           'Unknown condition';
-
+  (conditions || []).forEach(cond => {
+    const extracted = extractConditionData(cond);
+    if (extracted.onsetDate) {
       timeline.push({
-        date: new Date(condition.onsetDateTime),
+        date: extracted.onsetDate,
         type: 'condition',
         icon: '🩺',
-        title: conditionName,
-        description: `Clinical status: ${condition.clinicalStatus?.coding?.[0]?.code || 'unknown'}`,
-        status: condition.clinicalStatus?.coding?.[0]?.code || 'unknown',
-        source: condition._source?.source || 'Unknown',
-        id: condition.id
+        title: extracted.name,
+        description: `Clinical status: ${extracted.clinicalStatus}`,
+        status: extracted.clinicalStatus,
+        sources: extracted.sources,
+        sourceCount: extracted.sourceCount,
+        id: cond.id
       });
+      extracted.sources.forEach(s => allSources.add(s));
     }
   });
 
   // Add encounters
-  encounters.forEach(encounter => {
-    if (encounter.period?.start) {
-      const encounterType = encounter.type?.[0]?.text ||
-                           encounter.type?.[0]?.coding?.[0]?.display ||
-                           'Unknown encounter';
-
+  (encounters || []).forEach(enc => {
+    const extracted = extractEncounterData(enc);
+    if (extracted.startDate) {
       timeline.push({
-        date: new Date(encounter.period.start),
+        date: extracted.startDate,
         type: 'encounter',
         icon: '🏥',
-        title: encounterType,
-        description: encounter.location?.[0]?.location?.display || 'Location not specified',
-        status: encounter.status || 'unknown',
-        source: encounter._source?.source || 'Unknown',
-        id: encounter.id
+        title: extracted.type,
+        description: extracted.location,
+        status: extracted.status,
+        sources: extracted.sources,
+        sourceCount: extracted.sourceCount,
+        id: enc.id
       });
+      extracted.sources.forEach(s => allSources.add(s));
     }
   });
 
@@ -244,7 +382,7 @@ function processHealthTimelineData(medications, conditions, encounters, options 
       start: timeline[timeline.length - 1].date.toLocaleDateString(),
       end: timeline[0].date.toLocaleDateString()
     } : null,
-    sources: [...new Set(timeline.map(e => e.source))]
+    sources: [...allSources]
   };
 
   return {
@@ -259,6 +397,7 @@ function processHealthTimelineData(medications, conditions, encounters, options 
 /**
  * Process conditions for statistics visualization
  * Returns condition counts and categories
+ * Works with both merged and raw FHIR data
  */
 function processConditionStats(conditions) {
   if (!conditions || conditions.length === 0) {
@@ -270,27 +409,44 @@ function processConditionStats(conditions) {
     };
   }
 
-  const activeCount = conditions.filter(c =>
-    c.clinicalStatus?.coding?.[0]?.code === 'active'
-  ).length;
-
-  // Count conditions by name
+  let activeCount = 0;
+  let totalFromSources = 0;
   const conditionCounts = {};
-  conditions.forEach(condition => {
-    const name = condition.code?.text ||
-                condition.code?.coding?.[0]?.display ||
-                'Unknown';
-    conditionCounts[name] = (conditionCounts[name] || 0) + 1;
+
+  conditions.forEach(cond => {
+    const extracted = extractConditionData(cond);
+    totalFromSources += extracted.sourceCount;
+
+    if (extracted.clinicalStatus === 'active') {
+      activeCount++;
+    }
+
+    // Count conditions by name (using ICD-10 code as key if available for better grouping)
+    const key = extracted.icd10Code || extracted.name;
+    if (!conditionCounts[key]) {
+      conditionCounts[key] = {
+        name: extracted.name,
+        count: 0,
+        sources: new Set()
+      };
+    }
+    conditionCounts[key].count++;
+    extracted.sources.forEach(s => conditionCounts[key].sources.add(s));
   });
 
   // Get top 10 conditions
   const topConditions = Object.entries(conditionCounts)
-    .map(([name, count]) => ({ name, count }))
+    .map(([key, data]) => ({
+      name: data.name,
+      count: data.count,
+      sources: [...data.sources]
+    }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
   return {
     totalConditions: conditions.length,
+    totalFromSources,
     activeCount,
     inactiveCount: conditions.length - activeCount,
     topConditions,
@@ -301,18 +457,53 @@ function processConditionStats(conditions) {
 /**
  * Generate overview statistics across all health data
  * Includes deduplication metrics if applicable
+ * Works with both merged and raw FHIR data
  */
 function processOverviewStats(data, deduplicated = null) {
+  // Helper to count active medications from either format
+  const countActiveMeds = (meds) => {
+    if (!meds) return 0;
+    return meds.filter(m => {
+      const extracted = extractMedicationData(m);
+      return extracted.status === 'active';
+    }).length;
+  };
+
+  // Helper to count active conditions from either format
+  const countActiveConditions = (conditions) => {
+    if (!conditions) return 0;
+    return conditions.filter(c => {
+      const extracted = extractConditionData(c);
+      return extracted.clinicalStatus === 'active';
+    }).length;
+  };
+
+  // Helper to extract all sources from data
+  const extractSources = (items, extractFn) => {
+    if (!items) return [];
+    const sources = new Set();
+    items.forEach(item => {
+      const extracted = extractFn(item);
+      extracted.sources.forEach(s => sources.add(s));
+    });
+    return [...sources];
+  };
+
+  const allSources = new Set([
+    ...extractSources(data.medications, extractMedicationData),
+    ...extractSources(data.conditions, extractConditionData),
+    ...extractSources(data.labs, extractLabData),
+    ...extractSources(data.encounters, extractEncounterData)
+  ]);
+
   const overview = {
     medications: {
       total: data.medications?.length || 0,
-      active: data.medications?.filter(m => m.status === 'active').length || 0
+      active: countActiveMeds(data.medications)
     },
     conditions: {
       total: data.conditions?.length || 0,
-      active: data.conditions?.filter(c =>
-        c.clinicalStatus?.coding?.[0]?.code === 'active'
-      ).length || 0
+      active: countActiveConditions(data.conditions)
     },
     labs: {
       total: data.labs?.length || 0
@@ -320,12 +511,7 @@ function processOverviewStats(data, deduplicated = null) {
     encounters: {
       total: data.encounters?.length || 0
     },
-    sources: [...new Set([
-      ...(data.medications?.map(m => m._source?.source) || []),
-      ...(data.conditions?.map(c => c._source?.source) || []),
-      ...(data.labs?.map(l => l._source?.source) || []),
-      ...(data.encounters?.map(e => e._source?.source) || [])
-    ])].filter(Boolean)
+    sources: [...allSources].filter(Boolean)
   };
 
   // Add deduplication metrics if available
@@ -345,6 +531,11 @@ function processOverviewStats(data, deduplicated = null) {
         raw: data.labs?.length || 0,
         unique: deduplicated.labs?.length || 0,
         duplicatesRemoved: (data.labs?.length || 0) - (deduplicated.labs?.length || 0)
+      },
+      encounters: {
+        raw: data.encounters?.length || 0,
+        unique: deduplicated.encounters?.length || 0,
+        duplicatesRemoved: (data.encounters?.length || 0) - (deduplicated.encounters?.length || 0)
       }
     };
   }
