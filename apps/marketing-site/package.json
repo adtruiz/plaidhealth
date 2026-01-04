@@ -1,0 +1,11 @@
+{
+  "name": "@plaidhealth/marketing-site",
+  "version": "0.1.0",
+  "description": "Marketing website for PlaidHealth",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002"
+  }
+}

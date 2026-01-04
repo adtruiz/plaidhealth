@@ -1,0 +1,7 @@
+{
+  "name": "@plaidhealth/shared",
+  "version": "0.1.0",
+  "description": "Shared utilities and types for PlaidHealth",
+  "main": "src/index.js",
+  "scripts": {}
+}
