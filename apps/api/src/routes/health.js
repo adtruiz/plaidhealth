@@ -6,7 +6,7 @@
 
 const express = require('express');
 const { pool } = require('../db');
-const { isRedisConnected, healthCheck: redisHealthCheck } = require('../redis');
+const { healthCheck: redisHealthCheck } = require('../redis');
 const { getConfigSummary } = require('../config');
 const { getCacheStats } = require('../fhir-cache');
 const logger = require('../logger');

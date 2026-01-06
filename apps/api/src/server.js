@@ -19,11 +19,8 @@ const path = require('path');
 const { pool, userDb, epicDb, auditDb, widgetDb } = require('./db');
 
 // Middleware
-const { authenticate } = require('./middleware/auth');
-const { rateLimit, logApiUsage } = require('./middleware/rate-limit');
-
-// Webhooks
-const { EVENT_TYPES, dispatchEvent } = require('./webhooks');
+const { logApiUsage } = require('./middleware/rate-limit');
+const { errorHandler, notFoundHandler } = require('./middleware/error-handler');
 
 // Background jobs
 const { refreshExpiringTokens } = require('./token-refresh');
@@ -32,10 +29,10 @@ const { refreshExpiringTokens } = require('./token-refresh');
 const logger = require('./logger');
 
 // Redis
-const { initializeRedis, isRedisConnected, healthCheck: redisHealthCheck, shutdown: shutdownRedis } = require('./redis');
+const { initializeRedis, isRedisConnected, shutdown: shutdownRedis } = require('./redis');
 
 // Config
-const { loadConfig, getConfigSummary } = require('./config');
+const { loadConfig } = require('./config');
 
 // Lib modules (centralized helpers)
 const { getOAuthConfig, getFhirBaseUrl, getTokenUrl, getAllProviders } = require('./lib/providers');
@@ -43,7 +40,6 @@ const { generatePKCE, createBasicAuthTokenRequest, createPKCETokenRequest } = re
 
 // Route modules
 const healthRoutes = require('./routes/health');
-const authRoutes = require('./routes/auth');
 const fhirRoutes = require('./routes/fhir');
 const widgetRoutes = require('./routes/widget');
 const webhookRoutes = require('./routes/webhooks');
@@ -165,7 +161,6 @@ passport.deserializeUser(async (id, done) => {
 
 // Demo mode auth sessions (for OAuth flows without user login)
 const authSessions = {};
-const SESSION_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 const MAX_AUTH_SESSIONS = 10000;
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -395,7 +390,6 @@ app.get('/callback', async (req, res) => {
   const oauthConfig = getOAuthConfig(provider);
   const tokenUrl = getTokenUrl(provider);
   const clientId = oauthConfig.clientId;
-  const fhirBaseUrl = getFhirBaseUrl(provider);
 
   try {
     logger.info('Exchanging authorization code', { provider });
@@ -582,16 +576,13 @@ app.get('/api/encounters', requireAuth, async (req, res) => {
   }
 });
 
-// ==================== Error Handler ====================
+// ==================== Error Handling ====================
 
-app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', { message: err.message, stack: err.stack, url: req.url });
-  const isDevelopment = !process.env.RAILWAY_ENVIRONMENT && process.env.NODE_ENV !== 'production';
-  res.status(err.status || 500).json({
-    error: 'Internal server error',
-    ...(isDevelopment && { message: err.message })
-  });
-});
+// 404 handler - catches unmatched routes
+app.use(notFoundHandler);
+
+// Global error handler - catches all errors
+app.use(errorHandler);
 
 // ==================== Server Startup ====================
 
