@@ -1,23 +1,21 @@
 {
   "name": "plaidhealth",
   "version": "1.0.0",
-  "description": "Plaid for Healthcare - Unified API for patient health data aggregation",
   "private": true,
+  "description": "PlaidHealth - Healthcare Data API Platform",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "npm run dev --workspace=@plaidhealth/api",
+    "dev": "npm run dev --workspace=@plaidhealth/api",
     "dev:portal": "npm run dev --workspace=@plaidhealth/developer-portal",
     "dev:marketing": "npm run dev --workspace=@plaidhealth/marketing-site",
-    "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "start": "npm run start --workspace=@plaidhealth/api",
+    "build:portal": "npm run build --workspace=@plaidhealth/developer-portal",
+    "build:marketing": "npm run build --workspace=@plaidhealth/marketing-site"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/adtruiz/plaidhealth.git"
-  },
-  "author": "Adrian Ruiz",
-  "license": "UNLICENSED"
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

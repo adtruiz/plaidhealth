@@ -1,0 +1,110 @@
+version: '3.8'
+
+# Development compose file - use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Or standalone: docker compose -f docker-compose.dev.yml up
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage with dev dependencies
+    container_name: plaidhealth-api-dev
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      # Mount source for hot reload
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - ./migrations:/app/migrations:ro
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://plaidhealth:devpassword@postgres:5432/plaidhealth
+      - REDIS_URL=redis://redis:6379
+      - SESSION_SECRET=dev-session-secret-change-in-production
+      - ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      - LOG_LEVEL=debug
+      # Google OAuth - replace with your test credentials
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - REDIRECT_URI=http://localhost:3000/callback
+      # Epic sandbox
+      - EPIC_CLIENT_ID=${EPIC_CLIENT_ID:-}
+      - EPIC_AUTHORIZATION_URL=https://fhir.epic.com/interconnect-fhir-oauth/oauth2/authorize
+      - EPIC_TOKEN_URL=https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token
+      - EPIC_FHIR_BASE_URL=https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4
+    command: ["npx", "nodemon", "src/server.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - plaidhealth-dev
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: plaidhealth-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"  # Expose for local tools
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=plaidhealth
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_DB=plaidhealth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plaidhealth -d plaidhealth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - plaidhealth-dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: plaidhealth-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"  # Expose for local tools
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - plaidhealth-dev
+
+  # Redis Commander - Web UI for Redis debugging
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: plaidhealth-redis-ui
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - plaidhealth-dev
+    profiles:
+      - tools  # Only start with: docker compose --profile tools up
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  plaidhealth-dev:
+    driver: bridge
