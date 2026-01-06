@@ -7,9 +7,19 @@
 const logger = require('../logger');
 
 /**
- * Custom API Error class
+ * Custom API Error class for operational errors
+ * @extends Error
+ * @example
+ * throw new ApiError('User not found', 404, 'USER_NOT_FOUND');
+ * throw new ApiError('Validation failed', 400, 'VALIDATION_ERROR', { field: 'email' });
  */
 class ApiError extends Error {
+  /**
+   * @param {string} message - Human-readable error message
+   * @param {number} [statusCode=500] - HTTP status code
+   * @param {string} [code='INTERNAL_ERROR'] - Machine-readable error code
+   * @param {Object|null} [details=null] - Additional error details
+   */
   constructor(message, statusCode = 500, code = 'INTERNAL_ERROR', details = null) {
     super(message);
     this.statusCode = statusCode;
@@ -20,7 +30,10 @@ class ApiError extends Error {
 }
 
 /**
- * Not Found handler (404)
+ * Express middleware that catches unmatched routes and creates a 404 error
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next function
  */
 function notFoundHandler(req, res, next) {
   const error = new ApiError(
@@ -32,7 +45,12 @@ function notFoundHandler(req, res, next) {
 }
 
 /**
- * Global error handler
+ * Global Express error handler middleware
+ * Logs errors, normalizes error responses, and hides sensitive details in production
+ * @param {Error} err - Error object (can be ApiError or standard Error)
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} _next - Express next function (required for Express error handler signature)
  */
 function errorHandler(err, req, res, _next) {
   // Default values
@@ -93,7 +111,14 @@ function errorHandler(err, req, res, _next) {
 }
 
 /**
- * Async route wrapper to catch errors
+ * Wraps async route handlers to automatically catch and forward errors
+ * @param {Function} fn - Async route handler function (req, res, next) => Promise
+ * @returns {Function} Express middleware that catches promise rejections
+ * @example
+ * router.get('/users', asyncHandler(async (req, res) => {
+ *   const users = await User.findAll();
+ *   res.json(users);
+ * }));
  */
 function asyncHandler(fn) {
   return (req, res, next) => {

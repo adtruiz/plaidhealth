@@ -1,26 +1,24 @@
 openapi: 3.0.3
 info:
-  title: Plaid for Healthcare API
+  title: PlaidHealth API
   description: |
-    Unified API for accessing normalized health data from multiple EMRs and payers.
+    Healthcare data aggregation API for connecting to EHR systems and payers.
 
     ## Authentication
 
-    All endpoints support two authentication methods:
+    The API supports two authentication methods:
 
-    1. **API Key** (B2B): Include `Authorization: Bearer pfh_live_xxx` header
-    2. **Session** (Web): Use Google OAuth session cookie
+    1. **API Key** - For B2B integrations, pass your API key in the `X-API-Key` header
+    2. **Session** - For user-facing applications using Google OAuth
 
-    ## Key Format
+    ## Rate Limits
 
-    - Production: `pfh_live_` prefix
-    - Sandbox: `pfh_test_` prefix
+    - Widget endpoints: 100 requests/minute
+    - FHIR endpoints: 60 requests/minute
+    - OAuth endpoints: 10 requests/minute
   version: 1.0.0
   contact:
-    name: API Support
-    url: https://github.com/adtruiz/willow-and-co
-  license:
-    name: MIT
+    email: support@plaidhealth.com
 
 servers:
   - url: https://stripe-healthcare-production.up.railway.app
@@ -28,197 +26,291 @@ servers:
   - url: http://localhost:3000
     description: Development server
 
-security:
-  - BearerAuth: []
-  - ApiKeyAuth: []
-
 tags:
-  - name: Health Records
-    description: Normalized health data from all connected providers
+  - name: Health
+    description: Service health and readiness checks
+  - name: Widget
+    description: Connect Widget API for patient-initiated connections
+  - name: FHIR
+    description: FHIR R4 health records API
+  - name: Webhooks
+    description: Webhook management for real-time notifications
   - name: API Keys
-    description: API key management (session auth required)
-  - name: Connect Widget
-    description: Embeddable widget for patient health data authorization (like Plaid Link)
+    description: API key management for B2B authentication
 
 paths:
-  /api/v1/health-records:
+  /health:
     get:
-      summary: Get all health records
-      description: Returns normalized health data from all connected providers, including patient demographics, labs, medications, conditions, and encounters.
-      tags: [Health Records]
-      parameters:
-        - name: include_raw
-          in: query
-          description: Include raw FHIR data in response
-          schema:
-            type: boolean
-            default: false
+      tags: [Health]
+      summary: Basic health check
       responses:
         '200':
-          description: Successful response
+          description: Service is healthy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthRecordsResponse'
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: integer
+                  version:
+                    type: string
+
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ready]
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: boolean
+                      redis:
+                        type: boolean
+        '503':
+          description: Service not ready
+
+  /api/v1/widget/providers:
+    get:
+      tags: [Widget]
+      summary: List available providers
+      responses:
+        '200':
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+                          enum: [emr, payer, lab]
+                        available:
+                          type: boolean
+
+  /api/v1/widget/token:
+    post:
+      tags: [Widget]
+      summary: Create widget token
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_user_id]
+              properties:
+                client_user_id:
+                  type: string
+                redirect_uri:
+                  type: string
+                  format: uri
+                products:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Widget token created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widget_token:
+                    type: string
+                  expiration:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/ServerError'
+          description: Unauthorized
+
+  /api/v1/widget/exchange:
+    post:
+      tags: [Widget]
+      summary: Exchange public token
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [public_token]
+              properties:
+                public_token:
+                  type: string
+      responses:
+        '200':
+          description: Token exchanged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  connection_id:
+                    type: string
+                  provider:
+                    type: string
+
+  /api/v1/health-records:
+    get:
+      tags: [FHIR]
+      summary: Get unified health records
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: connection_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Health records
 
   /api/v1/patient:
     get:
+      tags: [FHIR]
       summary: Get patient demographics
-      description: Returns normalized patient demographics from all connected providers.
-      tags: [Health Records]
+      security:
+        - ApiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/IncludeRaw'
+        - name: connection_id
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PatientResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Patient data
 
   /api/v1/labs:
     get:
-      summary: Get laboratory results
-      description: Returns normalized lab results from all connected providers.
-      tags: [Health Records]
+      tags: [FHIR]
+      summary: Get lab results
+      security:
+        - ApiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/IncludeRaw'
-        - name: limit
+        - name: connection_id
           in: query
-          description: Maximum number of results
+          required: true
           schema:
-            type: integer
-            default: 100
+            type: string
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LabsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Lab results
 
   /api/v1/medications:
     get:
+      tags: [FHIR]
       summary: Get medications
-      description: Returns normalized medication list from all connected providers.
-      tags: [Health Records]
+      security:
+        - ApiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/IncludeRaw'
-        - name: status
+        - name: connection_id
           in: query
-          description: Filter by medication status
+          required: true
           schema:
             type: string
-            enum: [active, completed, stopped]
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MedicationsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Medications list
 
   /api/v1/conditions:
     get:
+      tags: [FHIR]
       summary: Get conditions/diagnoses
-      description: Returns normalized conditions from all connected providers.
-      tags: [Health Records]
+      security:
+        - ApiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/IncludeRaw'
-        - name: status
+        - name: connection_id
           in: query
-          description: Filter by clinical status
-          schema:
-            type: string
-            enum: [active, inactive, resolved]
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConditionsResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/v1/encounters:
-    get:
-      summary: Get encounters/visits
-      description: Returns normalized encounters from all connected providers.
-      tags: [Health Records]
-      parameters:
-        - $ref: '#/components/parameters/IncludeRaw'
-        - name: limit
-          in: query
-          description: Maximum number of results
-          schema:
-            type: integer
-            default: 50
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EncountersResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/v1/connection/{connectionId}:
-    get:
-      summary: Get data from specific connection
-      description: Returns normalized data from a specific connected provider.
-      tags: [Health Records]
-      parameters:
-        - name: connectionId
-          in: path
           required: true
           schema:
-            type: integer
-        - $ref: '#/components/parameters/IncludeRaw'
+            type: string
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConnectionDataResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          description: Connection not found
+          description: Conditions list
 
-  /api/keys:
+  /api/webhooks:
     get:
-      summary: List API keys
-      description: Returns all API keys for the authenticated user (session auth required).
-      tags: [API Keys]
+      tags: [Webhooks]
+      summary: List webhooks
       security:
         - SessionAuth: []
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiKeysListResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
+          description: List of webhooks
     post:
-      summary: Create API key
-      description: Creates a new API key. The full key is only returned once at creation.
+      tags: [Webhooks]
+      summary: Create webhook
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Webhook created
+
+  /api/keys:
+    get:
       tags: [API Keys]
+      summary: List API keys
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: List of API keys
+    post:
+      tags: [API Keys]
+      summary: Create API key
       security:
         - SessionAuth: []
       requestBody:
@@ -231,816 +323,22 @@ paths:
               properties:
                 name:
                   type: string
-                  description: Friendly name for the key
-                  example: "Production App"
                 scopes:
                   type: array
                   items:
                     type: string
                     enum: [read, write, admin]
-                  default: [read]
       responses:
         '201':
           description: API key created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiKeyCreateResponse'
-        '400':
-          description: Invalid request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/keys/{keyId}:
-    patch:
-      summary: Update API key
-      description: Update an API key's name or scopes.
-      tags: [API Keys]
-      security:
-        - SessionAuth: []
-      parameters:
-        - name: keyId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                scopes:
-                  type: array
-                  items:
-                    type: string
-                    enum: [read, write, admin]
-      responses:
-        '200':
-          description: API key updated
-        '404':
-          description: Key not found
-
-    delete:
-      summary: Delete API key
-      description: Permanently delete an API key.
-      tags: [API Keys]
-      security:
-        - SessionAuth: []
-      parameters:
-        - name: keyId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: API key deleted
-        '404':
-          description: Key not found
-
-  /api/keys/{keyId}/revoke:
-    post:
-      summary: Revoke API key
-      description: Revoke an API key (soft delete, keeps audit trail).
-      tags: [API Keys]
-      security:
-        - SessionAuth: []
-      parameters:
-        - name: keyId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: API key revoked
-        '404':
-          description: Key not found
-
-  /api/v1/widget/token:
-    post:
-      summary: Create widget token
-      description: |
-        Creates a short-lived token for initializing the Connect Widget.
-        Use this token to open the widget on your frontend.
-      tags: [Connect Widget]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [client_user_id]
-              properties:
-                client_user_id:
-                  type: string
-                  description: Your internal user ID
-                  example: "user_12345"
-                redirect_uri:
-                  type: string
-                  description: Optional redirect after widget completion
-                products:
-                  type: array
-                  items:
-                    type: string
-                  default: [health_records]
-                metadata:
-                  type: object
-                  description: Optional metadata to attach to the session
-      responses:
-        '200':
-          description: Widget token created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WidgetTokenResponse'
-        '400':
-          description: Missing client_user_id
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/v1/widget/providers:
-    get:
-      summary: List available providers
-      description: Returns list of configured healthcare providers available for connection.
-      tags: [Connect Widget]
-      security: []
-      responses:
-        '200':
-          description: Provider list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProvidersResponse'
-
-  /api/v1/widget/initiate/{provider}:
-    get:
-      summary: Initiate OAuth via widget
-      description: |
-        Starts OAuth flow for a specific provider. Called by the widget frontend.
-        Redirects user to provider's authorization page.
-      tags: [Connect Widget]
-      security: []
-      parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-            example: epic
-        - name: widget_token
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "wt_abc123..."
-      responses:
-        '302':
-          description: Redirect to provider OAuth
-        '400':
-          description: Invalid widget token or provider
-        '401':
-          description: Widget token expired
-
-  /api/v1/widget/exchange:
-    post:
-      summary: Exchange public token
-      description: |
-        Exchanges a public token (received after OAuth success) for permanent
-        connection access. Call this from your server after widget completes.
-      tags: [Connect Widget]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [public_token]
-              properties:
-                public_token:
-                  type: string
-                  description: Public token from widget success callback
-                  example: "pt_abc123..."
-      responses:
-        '200':
-          description: Token exchanged successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TokenExchangeResponse'
-        '401':
-          description: Invalid or expired public token
-
-  /api/v1/widget/sessions:
-    get:
-      summary: List widget sessions
-      description: Returns widget sessions for debugging and management.
-      tags: [Connect Widget]
-      responses:
-        '200':
-          description: Session list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        client_user_id:
-                          type: string
-                        products:
-                          type: array
-                          items:
-                            type: string
-                        created_at:
-                          type: string
-                          format: date-time
-                        used_at:
-                          type: string
-                          format: date-time
-                  meta:
-                    type: object
-                    properties:
-                      total:
-                        type: integer
 
 components:
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      description: API key in format pfh_live_xxx or pfh_test_xxx
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-Key
-      description: Alternative API key header
     SessionAuth:
       type: apiKey
       in: cookie
-      name: connect.sid
-      description: Session cookie from Google OAuth
-
-  parameters:
-    IncludeRaw:
-      name: include_raw
-      in: query
-      description: Include raw FHIR data in _raw field
-      schema:
-        type: boolean
-        default: false
-
-  responses:
-    Unauthorized:
-      description: Authentication required
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "Authentication required"
-              code:
-                type: string
-                example: "AUTH_REQUIRED"
-    ServerError:
-      description: Server error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-              details:
-                type: string
-
-  schemas:
-    Patient:
-      type: object
-      properties:
-        id:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        fullName:
-          type: string
-        dateOfBirth:
-          type: string
-          format: date
-        gender:
-          type: string
-          enum: [male, female, other, unknown]
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        address:
-          $ref: '#/components/schemas/Address'
-        source:
-          type: string
-          description: Provider source (epic, cerner, humana, etc.)
-
-    Address:
-      type: object
-      properties:
-        line1:
-          type: string
-        line2:
-          type: string
-        city:
-          type: string
-        state:
-          type: string
-        postalCode:
-          type: string
-        country:
-          type: string
-
-    Lab:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        code:
-          type: string
-          description: LOINC code
-        codeSystem:
-          type: string
-          example: "LOINC"
-        value:
-          oneOf:
-            - type: number
-            - type: string
-        unit:
-          type: string
-        valueType:
-          type: string
-          enum: [quantity, string, codeableconcept]
-        date:
-          type: string
-          format: date-time
-        status:
-          type: string
-          enum: [final, preliminary, cancelled]
-        referenceRange:
-          type: object
-          properties:
-            low:
-              type: number
-            high:
-              type: number
-            unit:
-              type: string
-        isAbnormal:
-          type: boolean
-        source:
-          type: string
-
-    Medication:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        code:
-          type: string
-          description: RxNorm code
-        codeSystem:
-          type: string
-          example: "RxNorm"
-        status:
-          type: string
-          enum: [active, completed, stopped]
-        dosage:
-          type: string
-        dosageDetails:
-          type: object
-          properties:
-            text:
-              type: string
-            dose:
-              type: number
-            doseUnit:
-              type: string
-            frequency:
-              type: string
-            route:
-              type: string
-        prescribedDate:
-          type: string
-          format: date
-        prescriber:
-          type: object
-          properties:
-            name:
-              type: string
-        refillsAllowed:
-          type: integer
-        quantity:
-          type: integer
-        daysSupply:
-          type: integer
-        source:
-          type: string
-
-    Condition:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        code:
-          type: string
-          description: ICD-10 code
-        codeSystem:
-          type: string
-          example: "ICD-10"
-        clinicalStatus:
-          type: string
-          enum: [active, inactive, resolved]
-        verificationStatus:
-          type: string
-          enum: [confirmed, provisional, differential]
-        category:
-          type: string
-        severity:
-          type: string
-        onsetDate:
-          type: string
-          format: date
-        recordedDate:
-          type: string
-          format: date
-        source:
-          type: string
-
-    Encounter:
-      type: object
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-        class:
-          type: string
-          enum: [outpatient, inpatient, emergency, home]
-        status:
-          type: string
-          enum: [completed, in-progress, scheduled]
-        startDate:
-          type: string
-          format: date-time
-        endDate:
-          type: string
-          format: date-time
-        duration:
-          type: string
-        location:
-          type: string
-        participants:
-          type: array
-          items:
-            type: object
-            properties:
-              role:
-                type: string
-              name:
-                type: string
-        reasons:
-          type: array
-          items:
-            type: string
-        serviceProvider:
-          type: object
-          properties:
-            name:
-              type: string
-        source:
-          type: string
-
-    Meta:
-      type: object
-      properties:
-        sources:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              provider:
-                type: string
-              displayName:
-                type: string
-              lastSynced:
-                type: string
-                format: date-time
-        normalizedAt:
-          type: string
-          format: date-time
-        version:
-          type: string
-          example: "1.0.0"
-
-    HealthRecordsResponse:
-      type: object
-      properties:
-        data:
-          type: object
-          properties:
-            patient:
-              $ref: '#/components/schemas/Patient'
-            patients:
-              type: array
-              items:
-                $ref: '#/components/schemas/Patient'
-            labs:
-              type: array
-              items:
-                $ref: '#/components/schemas/Lab'
-            medications:
-              type: array
-              items:
-                $ref: '#/components/schemas/Medication'
-            conditions:
-              type: array
-              items:
-                $ref: '#/components/schemas/Condition'
-            encounters:
-              type: array
-              items:
-                $ref: '#/components/schemas/Encounter'
-        meta:
-          $ref: '#/components/schemas/Meta'
-
-    PatientResponse:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/Patient'
-        all:
-          type: array
-          items:
-            $ref: '#/components/schemas/Patient'
-        meta:
-          $ref: '#/components/schemas/Meta'
-
-    LabsResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Lab'
-        meta:
-          type: object
-          properties:
-            total:
-              type: integer
-            sources:
-              type: array
-              items:
-                type: string
-
-    MedicationsResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Medication'
-        meta:
-          type: object
-          properties:
-            total:
-              type: integer
-            sources:
-              type: array
-              items:
-                type: string
-
-    ConditionsResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Condition'
-        meta:
-          type: object
-          properties:
-            total:
-              type: integer
-            sources:
-              type: array
-              items:
-                type: string
-
-    EncountersResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Encounter'
-        meta:
-          type: object
-          properties:
-            total:
-              type: integer
-            sources:
-              type: array
-              items:
-                type: string
-
-    ConnectionDataResponse:
-      type: object
-      properties:
-        data:
-          type: object
-          properties:
-            patient:
-              $ref: '#/components/schemas/Patient'
-            labs:
-              type: array
-              items:
-                $ref: '#/components/schemas/Lab'
-            medications:
-              type: array
-              items:
-                $ref: '#/components/schemas/Medication'
-            conditions:
-              type: array
-              items:
-                $ref: '#/components/schemas/Condition'
-            encounters:
-              type: array
-              items:
-                $ref: '#/components/schemas/Encounter'
-        meta:
-          type: object
-          properties:
-            connectionId:
-              type: integer
-            provider:
-              type: string
-            displayName:
-              type: string
-            lastSynced:
-              type: string
-              format: date-time
-            normalizedAt:
-              type: string
-              format: date-time
-
-    ApiKey:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        prefix:
-          type: string
-          description: First 12 characters of the key
-          example: "pfh_live_abc..."
-        scopes:
-          type: array
-          items:
-            type: string
-            enum: [read, write, admin]
-        createdAt:
-          type: string
-          format: date-time
-        lastUsedAt:
-          type: string
-          format: date-time
-        expiresAt:
-          type: string
-          format: date-time
-        revokedAt:
-          type: string
-          format: date-time
-        requestCount:
-          type: integer
-
-    ApiKeysListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ApiKey'
-        meta:
-          type: object
-          properties:
-            total:
-              type: integer
-
-    ApiKeyCreateResponse:
-      type: object
-      properties:
-        data:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            key:
-              type: string
-              description: Full API key - only shown once!
-              example: "pfh_live_abc123def456..."
-            prefix:
-              type: string
-            scopes:
-              type: array
-              items:
-                type: string
-            createdAt:
-              type: string
-              format: date-time
-        message:
-          type: string
-        warning:
-          type: string
-          example: "This is the only time the full key will be shown."
-
-    WidgetTokenResponse:
-      type: object
-      properties:
-        widget_token:
-          type: string
-          description: Token for initializing the Connect Widget
-          example: "wt_abc123def456..."
-        expiration:
-          type: string
-          format: date-time
-          description: Token expiration (30 minutes from creation)
-        request_id:
-          type: string
-          format: uuid
-
-    ProvidersResponse:
-      type: object
-      properties:
-        providers:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-                example: epic
-              name:
-                type: string
-                example: "Epic MyChart"
-              type:
-                type: string
-                enum: [emr, payer, lab, other]
-              logo:
-                type: string
-                description: Path to provider logo
-              available:
-                type: boolean
-                description: Whether provider is configured
-        request_id:
-          type: string
-          format: uuid
-
-    TokenExchangeResponse:
-      type: object
-      properties:
-        connection_id:
-          type: integer
-          description: ID of the created connection
-        provider:
-          type: string
-          description: Provider that was connected
-          example: epic
-        patient_id:
-          type: string
-          description: Patient ID at the provider
-        client_user_id:
-          type: string
-          description: Your internal user ID (from widget token creation)
-        request_id:
-          type: string
-          format: uuid
+      name: plaidhealth.sid
