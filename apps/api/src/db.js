@@ -83,6 +83,41 @@ const userDb = {
       'UPDATE users SET last_login = NOW() WHERE id = $1',
       [id]
     );
+  },
+
+  // Create new user with password (for developer portal)
+  createWithPassword: async (email, name, passwordHash, passwordSalt, company = null) => {
+    const result = await pool.query(
+      `INSERT INTO users (email, name, password_hash, password_salt, company, created_at, last_login)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING id, email, name, company, created_at`,
+      [email, name, passwordHash, passwordSalt, company]
+    );
+    return result.rows[0];
+  },
+
+  // Update user profile
+  updateProfile: async (id, { name, company }) => {
+    const updates = [];
+    const values = [id];
+    let paramIndex = 2;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (company !== undefined) {
+      updates.push(`company = $${paramIndex++}`);
+      values.push(company);
+    }
+
+    if (updates.length === 0) return null;
+
+    const result = await pool.query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $1 RETURNING id, email, name, company`,
+      values
+    );
+    return result.rows[0];
   }
 };
 
@@ -220,19 +255,19 @@ const auditDb = {
 // API Key operations for B2B authentication
 const apiKeyDb = {
   // Generate a new API key
-  create: async (userId, name, scopes = ['read']) => {
+  create: async (userId, name, scopes = ['read'], environment = 'sandbox') => {
     const crypto = require('crypto');
     // Generate a secure random key: pfh_live_xxxx or pfh_test_xxxx
-    const prefix = process.env.NODE_ENV === 'production' ? 'pfh_live_' : 'pfh_test_';
+    const prefix = environment === 'production' ? 'pfh_live_' : 'pfh_test_';
     const keyValue = prefix + crypto.randomBytes(24).toString('hex');
     // Store hash of the key, not the key itself
     const keyHash = crypto.createHash('sha256').update(keyValue).digest('hex');
 
     const result = await pool.query(
-      `INSERT INTO api_keys (user_id, name, key_hash, key_prefix, scopes, created_at, last_used_at)
-       VALUES ($1, $2, $3, $4, $5, NOW(), NULL)
-       RETURNING id, name, key_prefix, scopes, created_at`,
-      [userId, name, keyHash, keyValue.substring(0, 12) + '...', scopes]
+      `INSERT INTO api_keys (user_id, name, key_hash, key_prefix, scopes, environment, created_at, last_used_at, request_count)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NULL, 0)
+       RETURNING id, name, key_prefix, scopes, environment, created_at`,
+      [userId, name, keyHash, keyValue.substring(0, 12) + '...', scopes, environment]
     );
 
     // Return the full key only on creation (won't be retrievable later)

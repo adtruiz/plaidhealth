@@ -2,71 +2,94 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { api } from './api'
 
 export interface User {
   id: string
   email: string
   name: string
   company?: string
-  avatarUrl?: string
 }
 
 interface AuthContextType {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (email: string, password: string, name: string, company?: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const DEMO_USER: User = {
-  id: 'dev_123',
-  email: 'developer@example.com',
-  name: 'Demo Developer',
-  company: 'HealthTech Inc.',
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  // Check for existing session on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('plaidhealth_user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const checkAuth = async () => {
+      const token = api.getToken()
+      if (token) {
+        const result = await api.getProfile()
+        if (result.data) {
+          setUser({
+            id: result.data.id,
+            email: result.data.email,
+            name: result.data.name,
+            company: result.data.company,
+          })
+        } else {
+          // Token expired or invalid
+          api.setToken(null)
+        }
+      }
+      setIsLoading(false)
     }
-    setIsLoading(false)
+    checkAuth()
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true)
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500))
+    const result = await api.login(email, password)
 
-    // Simple demo auth - in production, this would call the main API
-    if (email && password.length >= 4) {
-      const newUser: User = {
-        ...DEMO_USER,
-        email,
-        name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      }
-      setUser(newUser)
-      localStorage.setItem('plaidhealth_user', JSON.stringify(newUser))
+    if (result.data) {
+      api.setToken(result.data.token)
+      setUser(result.data.user)
       setIsLoading(false)
-      return true
+      return { success: true }
     }
 
     setIsLoading(false)
-    return false
+    return { success: false, error: result.error || 'Login failed' }
   }
 
-  const logout = () => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    company?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true)
+
+    const result = await api.register(email, password, name, company)
+
+    if (result.data) {
+      api.setToken(result.data.token)
+      setUser(result.data.user)
+      setIsLoading(false)
+      return { success: true }
+    }
+
+    setIsLoading(false)
+    return { success: false, error: result.error || 'Registration failed' }
+  }
+
+  const logout = async () => {
+    await api.logout()
     setUser(null)
-    localStorage.removeItem('plaidhealth_user')
     router.push('/login')
   }
 
@@ -76,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         login,
+        register,
         logout,
         isAuthenticated: !!user,
       }}

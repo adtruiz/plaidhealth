@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,84 +29,75 @@ import {
   Eye,
   EyeOff,
   Key,
+  Loader2,
   MoreVertical,
   Plus,
   Trash2,
 } from 'lucide-react'
+import { api } from '@/lib/api'
 
 interface ApiKey {
   id: string
   name: string
   keyPrefix: string
-  environment: 'production' | 'sandbox'
+  scopes: string[]
   createdAt: string
-  lastUsed: string | null
+  lastUsedAt: string | null
+  expiresAt: string | null
+  revokedAt: string | null
+  requestCount: number
   status: 'active' | 'revoked'
 }
 
-const initialKeys: ApiKey[] = [
-  {
-    id: '1',
-    name: 'Production Server',
-    keyPrefix: 'pfh_live_',
-    environment: 'production',
-    createdAt: '2024-01-15',
-    lastUsed: '2 hours ago',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Development',
-    keyPrefix: 'pfh_test_',
-    environment: 'sandbox',
-    createdAt: '2024-01-10',
-    lastUsed: '5 minutes ago',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'CI/CD Pipeline',
-    keyPrefix: 'pfh_test_',
-    environment: 'sandbox',
-    createdAt: '2024-01-05',
-    lastUsed: '1 day ago',
-    status: 'active',
-  },
-]
-
 export default function ApiKeysPage() {
-  const [keys, setKeys] = useState<ApiKey[]>(initialKeys)
+  const [keys, setKeys] = useState<ApiKey[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyEnv, setNewKeyEnv] = useState<'production' | 'sandbox'>('sandbox')
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const [showKey, setShowKey] = useState(false)
   const { toast } = useToast()
 
-  const generateKey = () => {
-    const prefix = newKeyEnv === 'production' ? 'pfh_live_' : 'pfh_test_'
-    const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(24)))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-    return prefix + randomPart
+  useEffect(() => {
+    loadKeys()
+  }, [])
+
+  const loadKeys = async () => {
+    setIsLoading(true)
+    const result = await api.listKeys()
+    if (result.data) {
+      setKeys(result.data.keys)
+    } else {
+      toast({
+        title: 'Error loading keys',
+        description: result.error || 'Failed to load API keys',
+        variant: 'destructive',
+      })
+    }
+    setIsLoading(false)
   }
 
-  const handleCreateKey = () => {
+  const handleCreateKey = async () => {
     if (!newKeyName.trim()) return
 
-    const fullKey = generateKey()
-    const newKey: ApiKey = {
-      id: Date.now().toString(),
-      name: newKeyName,
-      keyPrefix: newKeyEnv === 'production' ? 'pfh_live_' : 'pfh_test_',
-      environment: newKeyEnv,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastUsed: null,
-      status: 'active',
-    }
+    setIsCreating(true)
+    const result = await api.createKey(newKeyName, ['read', 'write'], newKeyEnv)
 
-    setKeys([newKey, ...keys])
-    setCreatedKey(fullKey)
+    if (result.data) {
+      setCreatedKey(result.data.key)
+      // Reload keys to get the new one in the list
+      await loadKeys()
+    } else {
+      toast({
+        title: 'Error creating key',
+        description: result.error || 'Failed to create API key',
+        variant: 'destructive',
+      })
+      closeCreateDialog()
+    }
+    setIsCreating(false)
   }
 
   const handleCopyKey = (key: string) => {
@@ -117,24 +108,44 @@ export default function ApiKeysPage() {
     })
   }
 
-  const handleRevokeKey = (keyId: string) => {
-    setKeys(
-      keys.map((key) =>
-        key.id === keyId ? { ...key, status: 'revoked' as const } : key
+  const handleRevokeKey = async (keyId: string) => {
+    const result = await api.revokeKey(keyId)
+
+    if (result.data?.success) {
+      setKeys(
+        keys.map((key) =>
+          key.id === keyId ? { ...key, status: 'revoked' as const } : key
+        )
       )
-    )
-    toast({
-      title: 'API key revoked',
-      description: 'The API key has been revoked and can no longer be used.',
-    })
+      toast({
+        title: 'API key revoked',
+        description: 'The API key has been revoked and can no longer be used.',
+      })
+    } else {
+      toast({
+        title: 'Error revoking key',
+        description: result.error || 'Failed to revoke API key',
+        variant: 'destructive',
+      })
+    }
   }
 
-  const handleDeleteKey = (keyId: string) => {
-    setKeys(keys.filter((key) => key.id !== keyId))
-    toast({
-      title: 'API key deleted',
-      description: 'The API key has been permanently deleted.',
-    })
+  const handleDeleteKey = async (keyId: string) => {
+    const result = await api.deleteKey(keyId)
+
+    if (result.data?.success) {
+      setKeys(keys.filter((key) => key.id !== keyId))
+      toast({
+        title: 'API key deleted',
+        description: 'The API key has been permanently deleted.',
+      })
+    } else {
+      toast({
+        title: 'Error deleting key',
+        description: result.error || 'Failed to delete API key',
+        variant: 'destructive',
+      })
+    }
   }
 
   const closeCreateDialog = () => {
@@ -143,6 +154,30 @@ export default function ApiKeysPage() {
     setNewKeyEnv('sandbox')
     setCreatedKey(null)
     setShowKey(false)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  const formatLastUsed = (dateString: string | null) => {
+    if (!dateString) return 'Never used'
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+    return formatDate(dateString)
   }
 
   return (
@@ -213,7 +248,8 @@ export default function ApiKeysPage() {
                   <Button variant="outline" onClick={closeCreateDialog}>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateKey} disabled={!newKeyName.trim()}>
+                  <Button onClick={handleCreateKey} disabled={!newKeyName.trim() || isCreating}>
+                    {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Key
                   </Button>
                 </DialogFooter>
@@ -280,79 +316,81 @@ export default function ApiKeysPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {keys.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No API keys yet. Create one to get started.</p>
-              </div>
-            ) : (
-              keys.map((key) => (
-                <div
-                  key={key.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <Key className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{key.name}</span>
-                        <Badge
-                          variant={
-                            key.status === 'active' ? 'success' : 'secondary'
-                          }
-                        >
-                          {key.status}
-                        </Badge>
-                        <Badge
-                          variant={
-                            key.environment === 'production'
-                              ? 'default'
-                              : 'outline'
-                          }
-                        >
-                          {key.environment}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-mono">{key.keyPrefix}••••••••</span>
-                        {' · '}
-                        Created {key.createdAt}
-                        {key.lastUsed && ` · Last used ${key.lastUsed}`}
-                      </div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {key.status === 'active' && (
-                        <DropdownMenuItem
-                          onClick={() => handleRevokeKey(key.id)}
-                          className="text-yellow-600"
-                        >
-                          <AlertTriangle className="mr-2 h-4 w-4" />
-                          Revoke Key
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteKey(key.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Key
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {keys.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No API keys yet. Create one to get started.</p>
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                keys.map((key) => (
+                  <div
+                    key={key.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Key className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{key.name}</span>
+                          <Badge
+                            variant={
+                              key.status === 'active' ? 'success' : 'secondary'
+                            }
+                          >
+                            {key.status}
+                          </Badge>
+                          <Badge variant="outline">
+                            {key.scopes?.join(', ') || 'read'}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-mono">{key.keyPrefix}••••••••</span>
+                          {' · '}
+                          Created {formatDate(key.createdAt)}
+                          {' · '}
+                          {formatLastUsed(key.lastUsedAt)}
+                          {key.requestCount > 0 && ` · ${key.requestCount.toLocaleString()} requests`}
+                        </div>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {key.status === 'active' && (
+                          <DropdownMenuItem
+                            onClick={() => handleRevokeKey(key.id)}
+                            className="text-yellow-600"
+                          >
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            Revoke Key
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteKey(key.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Key
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

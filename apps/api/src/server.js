@@ -18,6 +18,8 @@ const { normalizePatient, normalizeLabs, normalizeMedications, normalizeConditio
 const { initializeRedis, isRedisConnected, healthCheck: redisHealthCheck, shutdown: shutdownRedis } = require('./redis');
 const { loadConfig, getConfigSummary } = require('./config');
 const { getCacheStats } = require('./fhir-cache');
+const developerRoutes = require('./routes/developer');
+const contactRoutes = require('./routes/contact');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -215,6 +217,10 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Developer Portal API routes (auth, API keys, usage)
+app.use('/api/v1/developer', developerRoutes);
+app.use('/api/v1/contact', contactRoutes);
 
 // Route: Root - redirect to login or dashboard (must be before static middleware)
 app.get('/', (req, res) => {
