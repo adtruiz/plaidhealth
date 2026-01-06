@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "npx jest --coverage --forceExit",
-    "test:watch": "npx jest --watch --forceExit"
+    "test:watch": "npx jest --watch --forceExit",
+    "migrate": "node src/migrations/run-migrations.js",
+    "db:setup": "node src/db-setup.js"
   },
   "keywords": [
     "fhir",
@@ -20,6 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.6.0",
+    "compression": "^1.8.1",
     "connect-pg-simple": "^9.0.1",
     "connect-redis": "^7.1.1",
     "cors": "^2.8.5",

@@ -7,6 +7,7 @@
 
 require('dotenv').config();
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
@@ -21,6 +22,7 @@ const { pool, userDb, epicDb, auditDb, widgetDb } = require('./db');
 // Middleware
 const { logApiUsage } = require('./middleware/rate-limit');
 const { errorHandler, notFoundHandler } = require('./middleware/error-handler');
+const { requestTiming, getPerformanceMetrics } = require('./middleware/performance');
 
 // Background jobs
 const { refreshExpiringTokens } = require('./token-refresh');
@@ -61,6 +63,21 @@ app.use((req, res, next) => {
   res.setHeader('X-Request-ID', req.id);
   next();
 });
+
+// Request timing and performance monitoring
+app.use(requestTiming);
+
+// Response compression (gzip/deflate)
+app.use(compression({
+  filter: (req, res) => {
+    // Don't compress responses if client doesn't accept it
+    if (req.headers['x-no-compression']) return false;
+    // Use default filter
+    return compression.filter(req, res);
+  },
+  threshold: 1024,  // Only compress responses > 1KB
+  level: 6          // Balanced compression level (1-9)
+}));
 
 // Parse JSON bodies
 app.use(express.json());

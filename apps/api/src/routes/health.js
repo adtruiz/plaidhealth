@@ -5,8 +5,9 @@
  */
 
 const express = require('express');
-const { pool } = require('../db');
+const { pool, getPoolStats } = require('../db');
 const { healthCheck: redisHealthCheck } = require('../redis');
+const { getPerformanceMetrics } = require('../middleware/performance');
 const { getConfigSummary } = require('../config');
 const { getCacheStats } = require('../fhir-cache');
 const logger = require('../logger');
@@ -121,6 +122,20 @@ router.get('/health/details', async (req, res) => {
     details.config = getConfigSummary();
   } catch (error) {
     details.config = { error: error.message };
+  }
+
+  // Database pool stats
+  try {
+    details.dbPool = getPoolStats();
+  } catch (error) {
+    details.dbPool = { error: error.message };
+  }
+
+  // Performance metrics
+  try {
+    details.performance = getPerformanceMetrics();
+  } catch (error) {
+    details.performance = { error: error.message };
   }
 
   res.json(details);
