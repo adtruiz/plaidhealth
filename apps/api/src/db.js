@@ -6,21 +6,29 @@ const logger = require('./logger');
 // Create database connection pool
 const databaseUrl = process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL;
 
-let poolConfig;
+// Optimized pool configuration
+const poolConfig = {
+  // Connection pooling settings
+  max: parseInt(process.env.PG_POOL_MAX) || 20,           // Maximum connections
+  min: parseInt(process.env.PG_POOL_MIN) || 2,            // Minimum connections to keep
+  idleTimeoutMillis: 30000,                               // Close idle connections after 30s
+  connectionTimeoutMillis: 5000,                          // Fail if connection takes > 5s
+  allowExitOnIdle: false,                                 // Keep pool alive
+
+  // Statement timeout to prevent long-running queries
+  statement_timeout: 30000,                               // 30 second query timeout
+
+  ssl: { rejectUnauthorized: false }
+};
+
 if (databaseUrl) {
-  poolConfig = {
-    connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: false }
-  };
+  poolConfig.connectionString = databaseUrl;
 } else if (process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD && process.env.PGDATABASE) {
-  poolConfig = {
-    host: process.env.PGHOST,
-    port: process.env.PGPORT || 5432,
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-    ssl: { rejectUnauthorized: false }
-  };
+  poolConfig.host = process.env.PGHOST;
+  poolConfig.port = process.env.PGPORT || 5432;
+  poolConfig.user = process.env.PGUSER;
+  poolConfig.password = process.env.PGPASSWORD;
+  poolConfig.database = process.env.PGDATABASE;
 } else {
   logger.error('Database connection variables not configured');
   process.exit(1);
@@ -36,6 +44,20 @@ pool.on('connect', () => {
 pool.on('error', (err) => {
   logger.error('Unexpected database error', { error: err.message, stack: err.stack });
 });
+
+/**
+ * Get pool statistics for monitoring
+ * @returns {object} Pool stats
+ */
+function getPoolStats() {
+  return {
+    total: pool.totalCount,
+    idle: pool.idleCount,
+    waiting: pool.waitingCount,
+    max: poolConfig.max,
+    min: poolConfig.min
+  };
+}
 
 // User operations
 const userDb = {
@@ -649,6 +671,7 @@ const widgetDb = {
 
 module.exports = {
   pool,
+  getPoolStats,
   userDb,
   ehrDb,
   epicDb: ehrDb, // Backward compatibility alias

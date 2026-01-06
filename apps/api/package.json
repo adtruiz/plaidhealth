@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx jest --coverage --forceExit",
+    "test:watch": "npx jest --watch --forceExit",
+    "migrate": "node src/migrations/run-migrations.js",
+    "db:setup": "node src/db-setup.js"
   },
   "keywords": [
     "fhir",
@@ -19,6 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.6.0",
+    "compression": "^1.8.1",
     "connect-pg-simple": "^9.0.1",
     "connect-redis": "^7.1.1",
     "cors": "^2.8.5",
@@ -32,9 +36,25 @@
     "winston": "^3.18.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "jest": "^30.2.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.1.4"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "./tests/setup.js"
+    ]
   }
 }
