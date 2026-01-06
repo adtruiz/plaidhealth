@@ -7,6 +7,7 @@
 
 const { apiKeyDb } = require('../db');
 const logger = require('../logger');
+const { recordAuthAttempt } = require('../monitoring');
 
 /**
  * Extract API key from request
@@ -48,6 +49,7 @@ function authenticate(requiredScopes = ['read']) {
             prefix: apiKey.substring(0, 12) + '...',
             ip: req.ip
           });
+          recordAuthAttempt(false, 'invalid_key');
           return res.status(401).json({
             error: 'Invalid API key',
             code: 'INVALID_API_KEY'
@@ -87,6 +89,7 @@ function authenticate(requiredScopes = ['read']) {
           keyId: keyData.id
         });
 
+        recordAuthAttempt(true);
         return next();
       } catch (err) {
         logger.error('API key validation error', { error: err.message });
@@ -100,11 +103,13 @@ function authenticate(requiredScopes = ['read']) {
     // Fall back to session authentication
     if (req.isAuthenticated && req.isAuthenticated()) {
       req.authMethod = 'session';
+      recordAuthAttempt(true);
       return next();
     }
 
     // No valid authentication
     logger.debug('Authentication required - no valid credentials');
+    recordAuthAttempt(false, 'no_credentials');
     return res.status(401).json({
       error: 'Authentication required',
       code: 'AUTH_REQUIRED',

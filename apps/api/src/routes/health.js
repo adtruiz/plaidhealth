@@ -10,6 +10,7 @@ const { healthCheck: redisHealthCheck } = require('../redis');
 const { getPerformanceMetrics } = require('../middleware/performance');
 const { getConfigSummary } = require('../config');
 const { getCacheStats } = require('../fhir-cache');
+const { getMetrics, getRecentErrors } = require('../monitoring');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -139,6 +140,51 @@ router.get('/health/details', async (req, res) => {
   }
 
   res.json(details);
+});
+
+/**
+ * GET /metrics
+ * Application metrics for monitoring dashboards
+ */
+router.get('/metrics', (req, res) => {
+  // In production, require API key for metrics
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production') {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) {
+      return res.status(401).json({ error: 'API key required' });
+    }
+  }
+
+  try {
+    const metrics = getMetrics();
+    res.json(metrics);
+  } catch (error) {
+    logger.error('Error fetching metrics', { error: error.message });
+    res.status(500).json({ error: 'Failed to fetch metrics' });
+  }
+});
+
+/**
+ * GET /metrics/errors
+ * Recent errors for debugging
+ */
+router.get('/metrics/errors', (req, res) => {
+  // In production, require API key
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production') {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) {
+      return res.status(401).json({ error: 'API key required' });
+    }
+  }
+
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const errors = getRecentErrors(limit);
+    res.json({ errors, count: errors.length });
+  } catch (error) {
+    logger.error('Error fetching recent errors', { error: error.message });
+    res.status(500).json({ error: 'Failed to fetch errors' });
+  }
 });
 
 /**

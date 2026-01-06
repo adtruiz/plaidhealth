@@ -13,6 +13,7 @@ const axios = require('axios');
 const { epicDb, auditDb } = require('../db');
 const { authenticate } = require('../middleware/auth');
 const logger = require('../logger');
+const { recordFhirCall } = require('../monitoring');
 const { getFhirBaseUrl, getProviderDisplayName } = require('../lib/providers');
 const {
   normalizePatient,
@@ -55,14 +56,22 @@ function requireLogin(req, res, next) {
 async function fetchFhirResource(connection, resourceType, params = {}) {
   const fhirBaseUrl = getFhirBaseUrl(connection.provider);
   const url = `${fhirBaseUrl}/${resourceType}`;
+  const startTime = Date.now();
 
-  return await axios.get(url, {
-    params,
-    headers: {
-      'Authorization': `Bearer ${connection.access_token}`,
-      'Accept': 'application/fhir+json'
-    }
-  });
+  try {
+    const response = await axios.get(url, {
+      params,
+      headers: {
+        'Authorization': `Bearer ${connection.access_token}`,
+        'Accept': 'application/fhir+json'
+      }
+    });
+    recordFhirCall(connection.provider, true, Date.now() - startTime);
+    return response;
+  } catch (error) {
+    recordFhirCall(connection.provider, false, Date.now() - startTime);
+    throw error;
+  }
 }
 
 /**

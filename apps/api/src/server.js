@@ -23,6 +23,8 @@ const { pool, userDb, epicDb, auditDb, widgetDb } = require('./db');
 const { logApiUsage } = require('./middleware/rate-limit');
 const { errorHandler, notFoundHandler } = require('./middleware/error-handler');
 const { requestTiming, getPerformanceMetrics } = require('./middleware/performance');
+const { monitoringMiddleware, getMetrics, getRecentErrors, recordError } = require('./monitoring');
+const { securityHeaders, isSuspiciousRequest, logSecurityEvent } = require('./security-config');
 
 // Background jobs
 const { refreshExpiringTokens } = require('./token-refresh');
@@ -66,6 +68,9 @@ app.use((req, res, next) => {
 
 // Request timing and performance monitoring
 app.use(requestTiming);
+
+// Application monitoring (metrics, alerts)
+app.use(monitoringMiddleware);
 
 // Response compression (gzip/deflate)
 app.use(compression({
@@ -232,12 +237,18 @@ setTimeout(() => {
 app.use(logApiUsage);
 
 // Security headers
+app.use(securityHeaders);
+
+// Suspicious request detection (log but don't block)
 app.use((req, res, next) => {
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  if (process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  const check = isSuspiciousRequest(req);
+  if (check.suspicious) {
+    logSecurityEvent('suspicious_request', {
+      ip: req.ip,
+      path: req.path,
+      indicators: check.indicators,
+      userAgent: req.headers['user-agent']?.substring(0, 100)
+    });
   }
   next();
 });
