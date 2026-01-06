@@ -3,9 +3,10 @@
 
 -- ==================== EHR Connections ====================
 -- Index for getting user's active connections (most common query)
+-- Note: Cannot use NOW() in partial index (not IMMUTABLE), so index all rows
+-- Query planner will still use this efficiently for filtering by token_expires_at
 CREATE INDEX IF NOT EXISTS idx_ehr_connections_user_active
-ON ehr_connections (user_id, token_expires_at DESC)
-WHERE token_expires_at > NOW();
+ON ehr_connections (user_id, token_expires_at DESC);
 
 -- Index for token refresh job (finds connections expiring soon)
 CREATE INDEX IF NOT EXISTS idx_ehr_connections_refresh
@@ -53,9 +54,10 @@ WHERE status IN ('pending', 'failed');
 
 -- ==================== Widget Tokens ====================
 -- Index for widget token validation
+-- Partial index on unused tokens (used_at IS NULL is IMMUTABLE)
 CREATE INDEX IF NOT EXISTS idx_widget_tokens_token
 ON widget_tokens (token)
-WHERE used_at IS NULL AND expires_at > NOW();
+WHERE used_at IS NULL;
 
 -- Index for API user's widget tokens
 CREATE INDEX IF NOT EXISTS idx_widget_tokens_user
@@ -63,9 +65,10 @@ ON widget_tokens (user_id, created_at DESC);
 
 -- ==================== Public Tokens ====================
 -- Index for public token exchange
+-- Partial index on unexchanged tokens (exchanged_at IS NULL is IMMUTABLE)
 CREATE INDEX IF NOT EXISTS idx_public_tokens_token
 ON public_tokens (token)
-WHERE exchanged_at IS NULL AND expires_at > NOW();
+WHERE exchanged_at IS NULL;
 
 -- ==================== Statistics ====================
 -- To verify indexes were created:
