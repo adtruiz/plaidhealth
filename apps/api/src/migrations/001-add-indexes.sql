@@ -49,7 +49,7 @@ ON webhook_deliveries (webhook_id, created_at DESC);
 -- Index for failed deliveries (for retry logic)
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_failed
 ON webhook_deliveries (webhook_id, created_at DESC)
-WHERE success = false;
+WHERE status IN ('pending', 'failed');
 
 -- ==================== Widget Tokens ====================
 -- Index for widget token validation
@@ -59,7 +59,7 @@ WHERE used_at IS NULL AND expires_at > NOW();
 
 -- Index for API user's widget tokens
 CREATE INDEX IF NOT EXISTS idx_widget_tokens_user
-ON widget_tokens (api_user_id, created_at DESC);
+ON widget_tokens (user_id, created_at DESC);
 
 -- ==================== Public Tokens ====================
 -- Index for public token exchange

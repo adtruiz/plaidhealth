@@ -155,10 +155,35 @@ paths:
         '401':
           description: Unauthorized
 
+  /api/v1/widget/initiate/{provider}:
+    get:
+      tags: [Widget]
+      summary: Initiate OAuth flow for a provider
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Provider ID (e.g., epic, cerner, aetna)
+        - name: widget_token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Widget token from /widget/token endpoint
+      responses:
+        '302':
+          description: Redirect to provider authorization URL
+        '400':
+          description: Missing widget_token or invalid provider
+        '401':
+          description: Invalid or expired widget token
+
   /api/v1/widget/exchange:
     post:
       tags: [Widget]
-      summary: Exchange public token
+      summary: Exchange public token for connection credentials
       security:
         - ApiKeyAuth: []
       requestBody:
@@ -173,18 +198,50 @@ paths:
                   type: string
       responses:
         '200':
-          description: Token exchanged
+          description: Token exchanged successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  access_token:
-                    type: string
                   connection_id:
                     type: string
                   provider:
                     type: string
+                  patient_id:
+                    type: string
+                  client_user_id:
+                    type: string
+                  request_id:
+                    type: string
+        '400':
+          description: Missing public_token
+        '401':
+          description: Invalid or expired public token
+
+  /api/v1/widget/sessions:
+    get:
+      tags: [Widget]
+      summary: Get widget sessions for debugging
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of widget sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
 
   /api/v1/health-records:
     get:
