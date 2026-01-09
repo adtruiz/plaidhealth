@@ -27,8 +27,10 @@ function requestTiming(req, res, next) {
     const durationNs = Number(endTime - startTime);
     const durationMs = Math.round(durationNs / 1e6);
 
-    // Add timing header
-    res.setHeader('X-Response-Time', `${durationMs}ms`);
+    // Add timing header (only if headers not already sent)
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${durationMs}ms`);
+    }
 
     // Log slow requests
     if (durationMs > SLOW_REQUEST_THRESHOLD) {
