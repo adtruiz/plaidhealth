@@ -75,6 +75,12 @@ npm start
 
 ---
 
+## Live Testing
+
+For a step‑by‑step production readiness checklist, see `LIVE_TEST.md`.
+
+---
+
 ## Project Structure
 
 ```
