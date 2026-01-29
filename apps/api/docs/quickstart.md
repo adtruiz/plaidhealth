@@ -16,7 +16,7 @@ Get started with VerziHealth API in under 5 minutes.
 ## Step 2: Test Your Connection
 
 ```bash
-curl https://verzihealth-production.up.railway.app/health \
+curl https://verzihealth-demo.up.railway.app/health \
   -H "Authorization: Bearer pfh_test_your_api_key"
 ```
 
@@ -30,7 +30,7 @@ You should see:
 The widget token initiates the patient authorization flow:
 
 ```bash
-curl -X POST https://verzihealth-production.up.railway.app/api/v1/widget/token \
+curl -X POST https://verzihealth-demo.up.railway.app/api/v1/widget/token \
   -H "Authorization: Bearer pfh_test_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -66,7 +66,7 @@ The user will:
 After authorization, exchange the public token for permanent access:
 
 ```bash
-curl -X POST https://verzihealth-production.up.railway.app/api/v1/widget/exchange \
+curl -X POST https://verzihealth-demo.up.railway.app/api/v1/widget/exchange \
   -H "Authorization: Bearer pfh_test_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{"public_token": "pt_xyz789..."}'
@@ -88,15 +88,15 @@ Now you can fetch the patient's health data:
 
 ```bash
 # Get all health records
-curl https://verzihealth-production.up.railway.app/api/v1/health-records \
+curl https://verzihealth-demo.up.railway.app/api/v1/health-records \
   -H "Authorization: Bearer pfh_test_your_api_key"
 
 # Get medications
-curl https://verzihealth-production.up.railway.app/api/v1/medications \
+curl https://verzihealth-demo.up.railway.app/api/v1/medications \
   -H "Authorization: Bearer pfh_test_your_api_key"
 
 # Get lab results
-curl https://verzihealth-production.up.railway.app/api/v1/labs \
+curl https://verzihealth-demo.up.railway.app/api/v1/labs \
   -H "Authorization: Bearer pfh_test_your_api_key"
 ```
 
@@ -106,7 +106,7 @@ curl https://verzihealth-production.up.railway.app/api/v1/labs \
 const axios = require('axios');
 
 const API_KEY = 'pfh_test_your_api_key';
-const BASE_URL = 'https://verzihealth-production.up.railway.app';
+const BASE_URL = 'https://verzihealth-demo.up.railway.app';
 
 const client = axios.create({
   baseURL: BASE_URL,
@@ -167,7 +167,7 @@ async function getHealthRecords() {
 import requests
 
 API_KEY = 'pfh_test_your_api_key'
-BASE_URL = 'https://verzihealth-production.up.railway.app'
+BASE_URL = 'https://verzihealth-demo.up.railway.app'
 
 headers = {'Authorization': f'Bearer {API_KEY}'}
 

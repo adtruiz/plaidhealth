@@ -7,8 +7,8 @@ VerziHealth provides a unified API for accessing patient health records from mul
 ## Base URL
 
 ```
-Production: https://verzihealth-production.up.railway.app
-Sandbox:    https://verzihealth-production.up.railway.app (same endpoint, use test API keys)
+Production: https://verzihealth-demo.up.railway.app
+Sandbox:    https://verzihealth-demo.up.railway.app (same endpoint, use test API keys)
 ```
 
 ## Authentication
@@ -51,7 +51,7 @@ Register at our developer portal and create an API key.
 ### 2. Create a Widget Token
 
 ```bash
-curl -X POST https://verzihealth-production.up.railway.app/api/v1/widget/token \
+curl -X POST https://verzihealth-demo.up.railway.app/api/v1/widget/token \
   -H "Authorization: Bearer pfh_test_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -81,7 +81,7 @@ Direct the user to:
 After the user completes authorization, exchange the public token:
 
 ```bash
-curl -X POST https://verzihealth-production.up.railway.app/api/v1/widget/exchange \
+curl -X POST https://verzihealth-demo.up.railway.app/api/v1/widget/exchange \
   -H "Authorization: Bearer pfh_test_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{"public_token": "pt_abc123..."}'
@@ -90,7 +90,7 @@ curl -X POST https://verzihealth-production.up.railway.app/api/v1/widget/exchang
 ### 5. Fetch Health Records
 
 ```bash
-curl https://verzihealth-production.up.railway.app/api/v1/health-records \
+curl https://verzihealth-demo.up.railway.app/api/v1/health-records \
   -H "Authorization: Bearer pfh_test_your_api_key"
 ```
 
@@ -542,7 +542,7 @@ Rate limit headers are included in all responses:
 const axios = require('axios');
 
 const client = axios.create({
-  baseURL: 'https://verzihealth-production.up.railway.app',
+  baseURL: 'https://verzihealth-demo.up.railway.app',
   headers: {
     'Authorization': 'Bearer pfh_live_your_api_key'
   }
@@ -560,7 +560,7 @@ import requests
 
 headers = {'Authorization': 'Bearer pfh_live_your_api_key'}
 response = requests.get(
-    'https://verzihealth-production.up.railway.app/api/v1/health-records',
+    'https://verzihealth-demo.up.railway.app/api/v1/health-records',
     headers=headers
 )
 data = response.json()
@@ -570,7 +570,7 @@ print(data['data']['medications'])
 ### cURL
 
 ```bash
-curl https://verzihealth-production.up.railway.app/api/v1/health-records \
+curl https://verzihealth-demo.up.railway.app/api/v1/health-records \
   -H "Authorization: Bearer pfh_live_your_api_key"
 ```
 

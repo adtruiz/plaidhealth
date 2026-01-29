@@ -218,7 +218,7 @@ I'm developing a patient-facing application that integrates with your FHIR Patie
 
 **Application Details**:
 - Client ID: [YOUR_CLIENT_ID]
-- Redirect URI: https://verzihealth-production.up.railway.app/callback
+- Redirect URI: https://verzihealth-demo.up.railway.app/callback
 - Application Type: Patient-facing standalone app
 
 **Issue**:

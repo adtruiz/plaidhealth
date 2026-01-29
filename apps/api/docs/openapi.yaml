@@ -21,7 +21,7 @@ info:
     email: support@verzihealth.com
 
 servers:
-  - url: https://verzihealth-production.up.railway.app
+  - url: https://verzihealth-demo.up.railway.app
     description: Production server
   - url: http://localhost:3000
     description: Development server

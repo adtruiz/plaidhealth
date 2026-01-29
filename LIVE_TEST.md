@@ -3,7 +3,7 @@
 This guide is a step‑by‑step checklist to test the full product experience from a client’s perspective.
 
 ## 0) Prerequisites
-- Production API base URL: `https://verzihealth-production.up.railway.app`
+- Production API base URL: `https://verzihealth-demo.up.railway.app`
 - Developer Portal URL: (your deployed portal URL)
 - Marketing Site URL: (your deployed marketing URL)
 - Valid provider sandbox credentials (e.g., Epic sandbox)

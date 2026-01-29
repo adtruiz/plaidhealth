@@ -131,7 +131,7 @@ verzihealth/
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Node.js API | **Deployed** | verzihealth-production.up.railway.app |
+| Node.js API | **Deployed** | verzihealth-demo.up.railway.app |
 | PostgreSQL | **Running** | Session, users, connections, audit logs |
 | Redis | Configured | Caching, rate limiting |
 
@@ -345,4 +345,4 @@ railway variables
 
 - **GitHub:** https://github.com/adtruiz/willow-and-co
 - **Primary Branch:** main
-- **Production URL:** https://verzihealth-production.up.railway.app/
+- **Production URL:** https://verzihealth-demo.up.railway.app/
