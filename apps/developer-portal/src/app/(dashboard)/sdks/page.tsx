@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,7 +11,10 @@ import {
   Download,
   Github,
   Package,
+  Terminal,
+  ExternalLink,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const sdks = [
   {
@@ -31,7 +35,9 @@ const sdks = [
       github: 'https://github.com/plaidhealth/plaidhealth-node',
       docs: '/docs#javascript',
     },
-    color: 'bg-yellow-500',
+    color: 'bg-amber-500',
+    iconBg: 'bg-amber-500/10',
+    iconColor: 'text-amber-500',
   },
   {
     name: 'Python',
@@ -52,6 +58,8 @@ const sdks = [
       docs: '/docs#python',
     },
     color: 'bg-blue-500',
+    iconBg: 'bg-blue-500/10',
+    iconColor: 'text-blue-500',
   },
   {
     name: 'Ruby',
@@ -71,6 +79,8 @@ const sdks = [
       docs: '/docs#ruby',
     },
     color: 'bg-red-500',
+    iconBg: 'bg-red-500/10',
+    iconColor: 'text-red-500',
     comingSoon: true,
   },
   {
@@ -90,6 +100,8 @@ const sdks = [
       docs: '/docs#go',
     },
     color: 'bg-cyan-500',
+    iconBg: 'bg-cyan-500/10',
+    iconColor: 'text-cyan-500',
     comingSoon: true,
   },
 ]
@@ -128,7 +140,7 @@ export default function SDKsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">SDKs & Libraries</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">SDKs & Libraries</h1>
         <p className="text-muted-foreground mt-2">
           Official PlaidHealth SDKs to help you integrate faster. All SDKs are
           open-source and actively maintained.
@@ -141,16 +153,16 @@ export default function SDKsPage() {
           <Card key={sdk.name} className="relative overflow-hidden">
             {sdk.comingSoon && (
               <Badge
-                className="absolute top-4 right-4"
+                className="absolute top-4 right-4 z-10"
                 variant="secondary"
               >
                 Coming Soon
               </Badge>
             )}
-            <CardHeader>
+            <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className={`h-10 w-10 rounded-lg ${sdk.color} flex items-center justify-center`}>
-                  <Package className="h-5 w-5 text-white" />
+                <div className={cn('h-11 w-11 rounded-xl flex items-center justify-center', sdk.iconBg)}>
+                  <Package className={cn('h-5 w-5', sdk.iconColor)} />
                 </div>
                 <div>
                   <CardTitle className="text-lg">{sdk.name}</CardTitle>
@@ -163,16 +175,17 @@ export default function SDKsPage() {
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{sdk.description}</p>
 
-              <div className="p-3 bg-muted rounded-md font-mono text-sm overflow-x-auto">
-                {sdk.installCommand}
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg font-mono text-sm">
+                <Terminal className="h-4 w-4 text-muted-foreground shrink-0" />
+                <code className="flex-1 truncate">{sdk.installCommand}</code>
               </div>
 
               <div>
                 <h4 className="text-sm font-medium mb-2">Features</h4>
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {sdk.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="h-3 w-3 text-green-500" />
+                      <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                       {feature}
                     </li>
                   ))}
@@ -199,7 +212,7 @@ export default function SDKsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <ArrowUpRight className="mr-2 h-4 w-4" />
+                      <ExternalLink className="mr-2 h-4 w-4" />
                       npm
                     </a>
                   </Button>
@@ -211,7 +224,7 @@ export default function SDKsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <ArrowUpRight className="mr-2 h-4 w-4" />
+                      <ExternalLink className="mr-2 h-4 w-4" />
                       PyPI
                     </a>
                   </Button>
@@ -223,7 +236,7 @@ export default function SDKsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <ArrowUpRight className="mr-2 h-4 w-4" />
+                      <ExternalLink className="mr-2 h-4 w-4" />
                       RubyGems
                     </a>
                   </Button>
@@ -235,15 +248,20 @@ export default function SDKsPage() {
       </div>
 
       {/* Code Examples */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Quick Examples</h2>
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold">Quick Examples</h2>
         <p className="text-muted-foreground">
           Get started with our most popular SDKs:
         </p>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
-            <h3 className="text-lg font-semibold mb-3">JavaScript / TypeScript</h3>
+            <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+              <div className="h-6 w-6 rounded-md bg-amber-500/10 flex items-center justify-center">
+                <Package className="h-3.5 w-3.5 text-amber-500" />
+              </div>
+              JavaScript / TypeScript
+            </h3>
             <CodeBlock
               code={codeExamples.javascript}
               language="typescript"
@@ -251,7 +269,12 @@ export default function SDKsPage() {
             />
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-3">Python</h3>
+            <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+              <div className="h-6 w-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                <Package className="h-3.5 w-3.5 text-blue-500" />
+              </div>
+              Python
+            </h3>
             <CodeBlock
               code={codeExamples.python}
               language="python"
@@ -259,7 +282,7 @@ export default function SDKsPage() {
             />
           </div>
         </div>
-      </div>
+      </section>
 
       {/* REST API */}
       <Card>
@@ -284,10 +307,10 @@ export default function SDKsPage() {
           />
 
           <Button variant="outline" asChild>
-            <a href="/docs">
+            <Link href="/docs">
               View API Documentation
               <ArrowUpRight className="ml-2 h-4 w-4" />
-            </a>
+            </Link>
           </Button>
         </CardContent>
       </Card>
@@ -319,8 +342,8 @@ export default function SDKsPage() {
       </Card>
 
       {/* Community */}
-      <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
-        <CardContent className="flex items-center justify-between py-6">
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-6">
           <div>
             <h3 className="font-semibold">Need help or want to contribute?</h3>
             <p className="text-sm text-muted-foreground">

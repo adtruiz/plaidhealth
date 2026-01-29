@@ -1,19 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ChevronDown,
   ChevronRight,
   Copy,
-  ExternalLink,
   Search,
+  Check,
+  FileJson,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/ui/use-toast'
 
 interface ApiEndpoint {
   method: string
@@ -196,55 +197,106 @@ const apiEndpoints: ApiCategory[] = [
   },
 ]
 
-const methodColors: Record<string, string> = {
-  GET: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  POST: 'bg-green-500/10 text-green-600 dark:text-green-400',
-  PUT: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-  DELETE: 'bg-red-500/10 text-red-600 dark:text-red-400',
+const methodStyles: Record<string, { bg: string; text: string }> = {
+  GET: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400' },
+  POST: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
+  PUT: { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400' },
+  DELETE: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400' },
+  PATCH: { bg: 'bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400' },
+}
+
+const errorCodes = [
+  { code: 400, name: 'Bad Request', desc: 'Invalid request parameters', color: 'text-amber-600 dark:text-amber-400' },
+  { code: 401, name: 'Unauthorized', desc: 'Invalid or missing API key', color: 'text-red-600 dark:text-red-400' },
+  { code: 403, name: 'Forbidden', desc: 'Access denied to resource', color: 'text-red-600 dark:text-red-400' },
+  { code: 404, name: 'Not Found', desc: 'Resource not found', color: 'text-amber-600 dark:text-amber-400' },
+  { code: 429, name: 'Too Many Requests', desc: 'Rate limit exceeded', color: 'text-amber-600 dark:text-amber-400' },
+  { code: 500, name: 'Internal Error', desc: 'Server error - contact support', color: 'text-red-600 dark:text-red-400' },
+] as const
+
+function getEndpointKey(endpoint: ApiEndpoint): string {
+  return `${endpoint.method}:${endpoint.path}`
+}
+
+function generateCurlExample(endpoint: ApiEndpoint): string {
+  const baseUrl = 'https://api.plaidhealth.com/v1'
+  const path = endpoint.path.replace('{id}', 'pat_123')
+  const hasBody = endpoint.requestBody
+
+  let curl = `curl -X ${endpoint.method} \\
+  ${baseUrl}${path} \\
+  -H "Authorization: Bearer pfh_live_your_api_key" \\
+  -H "Content-Type: application/json"`
+
+  if (hasBody) {
+    const bodyObj = Object.fromEntries(
+      Object.entries(endpoint.requestBody!).map(([k, v]) => [
+        k,
+        v.includes('string') ? 'example_value' : v,
+      ])
+    )
+    curl += ` \\
+  -d '${JSON.stringify(bodyObj, null, 2)}'`
+  }
+
+  return curl
 }
 
 export default function DocsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedEndpoints, setExpandedEndpoints] = useState<Set<string>>(new Set())
+  const [copiedText, setCopiedText] = useState<string | null>(null)
+  const { toast } = useToast()
 
-  const toggleEndpoint = (path: string) => {
-    const newExpanded = new Set(expandedEndpoints)
-    if (newExpanded.has(path)) {
-      newExpanded.delete(path)
-    } else {
-      newExpanded.add(path)
-    }
-    setExpandedEndpoints(newExpanded)
+  const toggleEndpoint = (key: string) => {
+    setExpandedEndpoints((prev) => {
+      const newExpanded = new Set(prev)
+      if (newExpanded.has(key)) {
+        newExpanded.delete(key)
+      } else {
+        newExpanded.add(key)
+      }
+      return newExpanded
+    })
   }
 
-  const filteredCategories = apiEndpoints
-    .map((category) => ({
-      ...category,
-      endpoints: category.endpoints.filter(
-        (endpoint) =>
-          endpoint.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          endpoint.summary.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    }))
-    .filter((category) => category.endpoints.length > 0)
+  const filteredCategories = useMemo(() => {
+    const query = searchQuery.toLowerCase()
+    return apiEndpoints
+      .map((category) => ({
+        ...category,
+        endpoints: category.endpoints.filter(
+          (endpoint) =>
+            endpoint.path.toLowerCase().includes(query) ||
+            endpoint.summary.toLowerCase().includes(query) ||
+            endpoint.description.toLowerCase().includes(query)
+        ),
+      }))
+      .filter((category) => category.endpoints.length > 0)
+  }, [searchQuery])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
+    setCopiedText(text)
+    toast({ title: 'Copied to clipboard' })
+    setTimeout(() => setCopiedText(null), 2000)
   }
+
+  const totalEndpoints = apiEndpoints.reduce((sum, cat) => sum + cat.endpoints.length, 0)
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">API Documentation</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">API Documentation</h1>
           <p className="text-muted-foreground">
-            Complete reference for the PlaidHealth API
+            Complete reference for the PlaidHealth API ({totalEndpoints} endpoints)
           </p>
         </div>
         <Button variant="outline" asChild>
           <a href="/api/openapi.yaml" target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="mr-2 h-4 w-4" />
+            <FileJson className="mr-2 h-4 w-4" />
             OpenAPI Spec
           </a>
         </Button>
@@ -254,160 +306,190 @@ export default function DocsPage() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search endpoints..."
+          placeholder="Search endpoints, methods, or descriptions..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+          className="pl-10 h-11"
         />
       </div>
 
-      {/* Base URL */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Base URL</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-md font-mono text-sm">
-            <span className="flex-1">https://api.plaidhealth.com/v1</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => copyToClipboard('https://api.plaidhealth.com/v1')}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Info Cards */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-muted-foreground">Base URL</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => copyToClipboard('https://api.plaidhealth.com/v1')}
+                aria-label="Copy base URL"
+              >
+                {copiedText === 'https://api.plaidhealth.com/v1' ? (
+                  <Check className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+              https://api.plaidhealth.com/v1
+            </code>
+          </CardContent>
+        </Card>
 
-      {/* Authentication */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Authentication</CardTitle>
-          <CardDescription>
-            All API requests require authentication using an API key
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Include your API key in the <code className="text-primary">Authorization</code> header:
-          </p>
-          <div className="p-3 bg-muted rounded-md font-mono text-sm overflow-x-auto">
-            <code>Authorization: Bearer pfh_live_your_api_key</code>
-          </div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-muted-foreground">Authentication</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => copyToClipboard('Authorization: Bearer pfh_live_your_api_key')}
+                aria-label="Copy authentication header"
+              >
+                {copiedText === 'Authorization: Bearer pfh_live_your_api_key' ? (
+                  <Check className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+              Authorization: Bearer pfh_live_...
+            </code>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* API Endpoints */}
       <div className="space-y-6">
-        {filteredCategories.map((category) => (
-          <Card key={category.category}>
-            <CardHeader>
-              <CardTitle>{category.category}</CardTitle>
-              <CardDescription>{category.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {category.endpoints.map((endpoint) => (
-                <div
-                  key={endpoint.path}
-                  className="border rounded-lg overflow-hidden"
-                >
-                  <button
-                    className="w-full flex items-center gap-4 p-4 text-left hover:bg-muted/50 transition-colors"
-                    onClick={() => toggleEndpoint(endpoint.path)}
-                  >
-                    <Badge
-                      className={cn(
-                        'font-mono text-xs px-2 py-0.5',
-                        methodColors[endpoint.method]
-                      )}
-                      variant="secondary"
-                    >
-                      {endpoint.method}
-                    </Badge>
-                    <span className="font-mono text-sm flex-1">
-                      {endpoint.path}
-                    </span>
-                    <span className="text-sm text-muted-foreground hidden sm:block">
-                      {endpoint.summary}
-                    </span>
-                    {expandedEndpoints.has(endpoint.path) ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </button>
-
-                  {expandedEndpoints.has(endpoint.path) && (
-                    <div className="border-t bg-muted/30 p-4 space-y-4">
-                      <div>
-                        <h4 className="font-medium mb-2">Description</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {endpoint.description}
-                        </p>
-                      </div>
-
-                      {endpoint.requestBody && (
-                        <div>
-                          <h4 className="font-medium mb-2">Request Body</h4>
-                          <div className="p-3 bg-background rounded-md font-mono text-xs overflow-x-auto">
-                            <pre>
-                              {JSON.stringify(endpoint.requestBody, null, 2)}
-                            </pre>
-                          </div>
-                        </div>
-                      )}
-
-                      {endpoint.queryParams && (
-                        <div>
-                          <h4 className="font-medium mb-2">Query Parameters</h4>
-                          <div className="p-3 bg-background rounded-md font-mono text-xs overflow-x-auto">
-                            <pre>
-                              {JSON.stringify(endpoint.queryParams, null, 2)}
-                            </pre>
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <h4 className="font-medium mb-2">Response</h4>
-                        <div className="p-3 bg-background rounded-md font-mono text-xs overflow-x-auto">
-                          <pre>
-                            {JSON.stringify(endpoint.response, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-2">Example Request</h4>
-                        <div className="p-3 bg-background rounded-md font-mono text-xs overflow-x-auto">
-                          <pre>{`curl -X ${endpoint.method} \\
-  https://api.plaidhealth.com/v1${endpoint.path.replace('{id}', 'pat_123')} \\
-  -H "Authorization: Bearer pfh_live_your_api_key" \\
-  -H "Content-Type: application/json"${
-    endpoint.requestBody
-      ? ` \\
-  -d '${JSON.stringify(
-    Object.fromEntries(
-      Object.entries(endpoint.requestBody).map(([k, v]) => [
-        k,
-        v.includes('string') ? 'example_value' : v,
-      ])
-    ),
-    null,
-    2
-  )}'`
-      : ''
-  }`}</pre>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+        {filteredCategories.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="font-semibold mb-1">No endpoints found</h3>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search query
+              </p>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          filteredCategories.map((category) => (
+            <Card key={category.category}>
+              <CardHeader>
+                <CardTitle>{category.category}</CardTitle>
+                <CardDescription>{category.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {category.endpoints.map((endpoint) => {
+                  const style = methodStyles[endpoint.method]
+                  const endpointKey = getEndpointKey(endpoint)
+                  const isExpanded = expandedEndpoints.has(endpointKey)
+
+                  return (
+                    <div
+                      key={endpointKey}
+                      className="border rounded-xl overflow-hidden"
+                    >
+                      <button
+                        className="w-full flex items-center gap-4 p-4 text-left hover:bg-muted/50 transition-colors"
+                        onClick={() => toggleEndpoint(endpointKey)}
+                        aria-expanded={isExpanded}
+                      >
+                        <Badge
+                          className={cn(
+                            'font-mono text-xs px-2.5 py-1 font-semibold',
+                            style.bg,
+                            style.text
+                          )}
+                          variant="secondary"
+                        >
+                          {endpoint.method}
+                        </Badge>
+                        <span className="font-mono text-sm flex-1">
+                          {endpoint.path}
+                        </span>
+                        <span className="text-sm text-muted-foreground hidden md:block max-w-xs truncate">
+                          {endpoint.summary}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="border-t bg-muted/30 p-5 space-y-5">
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2">Description</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {endpoint.description}
+                            </p>
+                          </div>
+
+                          {endpoint.requestBody && (
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2">Request Body</h4>
+                              <div className="p-3 bg-background rounded-lg font-mono text-xs overflow-x-auto border">
+                                <pre className="text-muted-foreground">
+                                  {JSON.stringify(endpoint.requestBody, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+
+                          {endpoint.queryParams && (
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2">Query Parameters</h4>
+                              <div className="p-3 bg-background rounded-lg font-mono text-xs overflow-x-auto border">
+                                <pre className="text-muted-foreground">
+                                  {JSON.stringify(endpoint.queryParams, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2">Response</h4>
+                            <div className="p-3 bg-background rounded-lg font-mono text-xs overflow-x-auto border">
+                              <pre className="text-muted-foreground">
+                                {JSON.stringify(endpoint.response, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-semibold">Example Request</h4>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => copyToClipboard(generateCurlExample(endpoint))}
+                              >
+                                <Copy className="h-3 w-3 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                            <div className="p-3 bg-background rounded-lg font-mono text-xs overflow-x-auto border">
+                              <pre className="text-muted-foreground whitespace-pre-wrap">
+                                {generateCurlExample(endpoint)}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Error Codes */}
@@ -419,27 +501,20 @@ export default function DocsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
+              <thead className="bg-muted/50">
+                <tr>
                   <th className="text-left py-3 px-4 font-medium">Code</th>
                   <th className="text-left py-3 px-4 font-medium">Name</th>
                   <th className="text-left py-3 px-4 font-medium">Description</th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { code: 400, name: 'Bad Request', desc: 'Invalid request parameters' },
-                  { code: 401, name: 'Unauthorized', desc: 'Invalid or missing API key' },
-                  { code: 403, name: 'Forbidden', desc: 'Access denied to resource' },
-                  { code: 404, name: 'Not Found', desc: 'Resource not found' },
-                  { code: 429, name: 'Too Many Requests', desc: 'Rate limit exceeded' },
-                  { code: 500, name: 'Internal Error', desc: 'Server error - contact support' },
-                ].map((error) => (
-                  <tr key={error.code} className="border-b last:border-0">
+                {errorCodes.map((error, index) => (
+                  <tr key={error.code} className={cn('border-t', index % 2 === 0 && 'bg-muted/20')}>
                     <td className="py-3 px-4">
-                      <Badge variant="outline">{error.code}</Badge>
+                      <Badge variant="outline" className={error.color}>{error.code}</Badge>
                     </td>
                     <td className="py-3 px-4 font-medium">{error.name}</td>
                     <td className="py-3 px-4 text-muted-foreground">{error.desc}</td>
