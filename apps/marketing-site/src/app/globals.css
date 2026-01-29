@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
   html {
@@ -10,24 +10,51 @@
   }
 
   body {
-    @apply antialiased;
+    @apply antialiased bg-white text-slate-900;
   }
 }
 
 @layer components {
+  /* Gradient text for headings */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-accent-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 via-primary-500 to-mint-500;
   }
 
-  .gradient-bg {
-    @apply bg-gradient-to-br from-primary-50 via-white to-accent-50;
+  /* Hero gradient background */
+  .hero-gradient {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 50%, #ecfdf5 100%);
   }
 
-  .card-shadow {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* Feature icon container */
+  .feature-icon {
+    @apply w-14 h-14 rounded-xl bg-gradient-to-br from-primary-100 to-mint-100 flex items-center justify-center;
   }
 
-  .card-shadow-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* Section padding */
+  .section-padding {
+    @apply py-20 sm:py-28 lg:py-32;
+  }
+
+  /* Container */
+  .container-custom {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-700 border border-primary-200;
+  }
+
+  .badge-mint {
+    @apply bg-mint-100 text-mint-700 border border-mint-200;
+  }
+
+  /* Pricing card popular badge */
+  .popular-badge {
+    @apply absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-primary-600 to-mint-600 text-white text-sm font-semibold rounded-full;
   }
 }

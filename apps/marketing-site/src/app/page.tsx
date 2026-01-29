@@ -3,408 +3,596 @@
 import { motion } from 'framer-motion'
 import {
   Shield,
-  Zap,
-  Code,
-  Database,
   Lock,
-  RefreshCw,
-  CheckCircle,
   ArrowRight,
-  Building2,
-  Heart,
-  FileText,
+  CheckCircle2,
+  Sparkles,
+  Users,
+  Activity,
+  Stethoscope,
+  ChevronRight,
+  Code2,
 } from 'lucide-react'
 import Button from '@/components/Button'
-import AnimatedSection, { AnimatedCard, SlideIn } from '@/components/AnimatedSection'
+import {
+  DATA_CONNECTIONS,
+  PLATFORM_FEATURES,
+  INTEGRATION_STEPS,
+  PRICING_TIERS,
+  TRUSTED_BY,
+} from '@/lib/constants'
 
-const integrations = [
-  { name: 'Epic', category: 'EHR' },
-  { name: 'Cerner', category: 'EHR' },
-  { name: 'Allscripts', category: 'EHR' },
-  { name: 'Meditech', category: 'EHR' },
-  { name: 'Humana', category: 'Payer' },
-  { name: 'BCBS', category: 'Payer' },
-  { name: 'Aetna', category: 'Payer' },
-  { name: 'Cigna', category: 'Payer' },
-]
+// Animation variants
+const fadeInUp = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+}
 
-const features = [
-  {
-    icon: Database,
-    title: 'Unified API',
-    description: 'One API to access patient records from any EMR or payer. No more building separate integrations.',
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+    },
   },
-  {
-    icon: Shield,
-    title: 'HIPAA Compliant',
-    description: 'Enterprise-grade security with end-to-end encryption, audit logs, and full HIPAA compliance.',
-  },
-  {
-    icon: Zap,
-    title: 'Real-time Sync',
-    description: 'Get webhooks for data changes. Keep your app in sync with the source of truth.',
-  },
-  {
-    icon: Code,
-    title: 'Developer First',
-    description: 'SDKs for every major language. Comprehensive docs. Get started in minutes, not months.',
-  },
-  {
-    icon: Lock,
-    title: 'Patient Consent',
-    description: 'Built-in consent management with our Connect widget. Patients authorize data sharing securely.',
-  },
-  {
-    icon: RefreshCw,
-    title: 'Normalized Data',
-    description: 'We transform messy healthcare data into clean, consistent FHIR-based resources.',
-  },
-]
-
-const steps = [
-  {
-    number: '01',
-    title: 'Embed Connect',
-    description: 'Add our Connect widget to your app. Patients select their provider and authenticate.',
-  },
-  {
-    number: '02',
-    title: 'Get Access Token',
-    description: 'Receive a secure access token after successful authentication. Store it for API calls.',
-  },
-  {
-    number: '03',
-    title: 'Fetch Health Data',
-    description: 'Query our unified API for conditions, medications, labs, encounters, and more.',
-  },
-]
-
-const testimonials = [
-  {
-    quote: "PlaidHealth cut our integration time from 6 months to 2 weeks. It's exactly what the healthcare industry needed.",
-    author: 'Sarah Chen',
-    role: 'CTO, HealthSync',
-    company: 'Digital Health Startup',
-  },
-  {
-    quote: "The data normalization alone saves us hundreds of engineering hours. Clean, consistent data every time.",
-    author: 'Michael Torres',
-    role: 'VP Engineering',
-    company: 'Clinical Trial Platform',
-  },
-  {
-    quote: "Finally, an API that understands healthcare. HIPAA compliance baked in, not bolted on.",
-    author: 'Dr. Emily Watson',
-    role: 'Chief Medical Officer',
-    company: 'Telehealth Provider',
-  },
-]
+}
 
 export default function Home() {
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 gradient-bg">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+      <section className="relative min-h-screen flex items-center hero-gradient bg-hero-pattern">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 -left-40 w-80 h-80 bg-mint-200/30 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative container-custom pt-32 pb-20 lg:pt-40 lg:pb-32">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left: Content */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial="initial"
+              animate="animate"
+              variants={staggerContainer}
+              className="text-center lg:text-left"
             >
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-700 mb-6">
-                <Shield className="w-4 h-4 mr-1.5" />
-                HIPAA Compliant & SOC 2 Certified
-              </span>
+              <motion.div variants={fadeInUp}>
+                <span className="badge badge-primary mb-6">
+                  <Shield className="w-4 h-4 mr-2" aria-hidden="true" />
+                  HIPAA Compliant & SOC 2 Certified
+                </span>
+              </motion.div>
+
+              <motion.h1
+                variants={fadeInUp}
+                className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 tracking-tight leading-[1.1]"
+              >
+                The <span className="gradient-text">Plaid for Healthcare</span>
+              </motion.h1>
+
+              <motion.p
+                variants={fadeInUp}
+                className="mt-6 text-lg sm:text-xl text-slate-600 max-w-xl mx-auto lg:mx-0"
+              >
+                One API to connect your application to patient health data from
+                any EMR, payer, or lab system. Build compliant healthcare apps
+                faster.
+              </motion.p>
+
+              <motion.div
+                variants={fadeInUp}
+                className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
+              >
+                <Button href="/contact" size="lg">
+                  Get API Access
+                  <ArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
+                </Button>
+                <Button href="/docs" variant="outline" size="lg">
+                  View Documentation
+                </Button>
+              </motion.div>
+
+              <motion.div
+                variants={fadeInUp}
+                className="mt-12 flex items-center justify-center lg:justify-start gap-8"
+              >
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-slate-900">50+</div>
+                  <div className="text-sm text-slate-500">Integrations</div>
+                </div>
+                <div className="w-px h-12 bg-slate-200" aria-hidden="true" />
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-slate-900">10M+</div>
+                  <div className="text-sm text-slate-500">Patient Records</div>
+                </div>
+                <div className="w-px h-12 bg-slate-200" aria-hidden="true" />
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-slate-900">99.99%</div>
+                  <div className="text-sm text-slate-500">Uptime</div>
+                </div>
+              </motion.div>
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight"
-            >
-              The <span className="gradient-text">Plaid for Healthcare</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-6 text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto"
-            >
-              One API to connect to patient health data from any EMR or payer.
-              Build healthcare apps faster with our unified, HIPAA-compliant platform.
-            </motion.p>
-
+            {/* Right: Product Mockup */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="relative"
             >
-              <Button href="/contact" size="lg">
-                Get API Access
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-              <Button href="/docs" variant="outline" size="lg">
-                View Documentation
-              </Button>
+              <div className="relative bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-700">
+                {/* Browser chrome */}
+                <div className="flex items-center space-x-2 px-4 py-3 bg-slate-800 border-b border-slate-700">
+                  <div className="flex space-x-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                  </div>
+                  <div className="flex-1 mx-4">
+                    <div className="bg-slate-700 rounded-md px-3 py-1 text-xs text-slate-400 flex items-center">
+                      <Lock className="w-3 h-3 mr-2 text-mint-400" aria-hidden="true" />
+                      api.plaidhealth.com/v1/patients
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code content */}
+                <div className="p-6">
+                  <pre className="text-sm font-mono overflow-x-auto">
+                    <code>
+                      <span className="text-slate-500">
+                        {'// Fetch patient medications'}
+                      </span>
+                      {'\n'}
+                      <span className="text-purple-400">const</span>{' '}
+                      <span className="text-slate-300">medications</span>{' '}
+                      <span className="text-slate-500">=</span>{' '}
+                      <span className="text-purple-400">await</span>{' '}
+                      <span className="text-mint-400">plaidhealth</span>
+                      <span className="text-slate-300">.medications.</span>
+                      <span className="text-primary-400">list</span>
+                      <span className="text-slate-300">({'{'}</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'  '}</span>
+                      <span className="text-mint-300">patient_id</span>
+                      <span className="text-slate-300">:</span>{' '}
+                      <span className="text-amber-300">
+                        &apos;pt_abc123&apos;
+                      </span>
+                      <span className="text-slate-300">,</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'}'});</span>
+                      {'\n\n'}
+                      <span className="text-slate-500">
+                        {'// Returns normalized FHIR resources'}
+                      </span>
+                      {'\n'}
+                      <span className="text-slate-300">{'{'}</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'  '}</span>
+                      <span className="text-mint-300">&quot;data&quot;</span>
+                      <span className="text-slate-300">: [{'{'}</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'    '}</span>
+                      <span className="text-mint-300">
+                        &quot;resourceType&quot;
+                      </span>
+                      <span className="text-slate-300">:</span>{' '}
+                      <span className="text-amber-300">
+                        &quot;MedicationStatement&quot;
+                      </span>
+                      <span className="text-slate-300">,</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'    '}</span>
+                      <span className="text-mint-300">&quot;status&quot;</span>
+                      <span className="text-slate-300">:</span>{' '}
+                      <span className="text-amber-300">&quot;active&quot;</span>
+                      <span className="text-slate-300">,</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'    '}</span>
+                      <span className="text-mint-300">
+                        &quot;medicationCodeableConcept&quot;
+                      </span>
+                      <span className="text-slate-300">: ...</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'  }'}]</span>
+                      {'\n'}
+                      <span className="text-slate-300">{'}'}</span>
+                    </code>
+                  </pre>
+                </div>
+              </div>
+
+              {/* Floating card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+                className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-4 border border-slate-100"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-mint-100 rounded-lg flex items-center justify-center">
+                    <CheckCircle2
+                      className="w-5 h-5 text-mint-600"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      HIPAA Verified
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      End-to-end encrypted
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
-
-          {/* Code Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-16 max-w-4xl mx-auto"
-          >
-            <div className="rounded-xl bg-gray-900 shadow-2xl overflow-hidden">
-              <div className="flex items-center space-x-2 px-4 py-3 bg-gray-800">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="ml-2 text-sm text-gray-400">api-example.js</span>
-              </div>
-              <pre className="p-6 text-sm overflow-x-auto">
-                <code className="text-gray-300">
-{`import PlaidHealth from '@plaidhealth/node';
-
-const client = new PlaidHealth({ apiKey: process.env.PLAIDHEALTH_KEY });
-
-// Fetch patient medications
-const medications = await client.medications.list({
-  accessToken: 'patient_access_token',
-});
-
-// Returns normalized FHIR MedicationStatement resources
-console.log(medications.data);
-// [{ resourceType: 'MedicationStatement', status: 'active', ... }]`}
-                </code>
-              </pre>
-            </div>
-          </motion.div>
         </div>
       </section>
 
-      {/* Integrations Section */}
-      <section className="py-16 bg-white border-y border-gray-100">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection>
-            <p className="text-center text-sm font-medium text-gray-500 mb-8">
-              CONNECT TO 50+ EMRs AND PAYERS
-            </p>
-          </AnimatedSection>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-8 items-center">
-            {integrations.map((integration, index) => (
-              <AnimatedCard key={integration.name} delay={index * 0.05}>
-                <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center mb-2">
-                    {integration.category === 'EHR' ? (
-                      <Building2 className="w-5 h-5 text-gray-600" />
-                    ) : (
-                      <Heart className="w-5 h-5 text-gray-600" />
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-gray-700">{integration.name}</span>
+      {/* Trusted By Section */}
+      <section className="py-12 bg-white border-y border-slate-100">
+        <div className="container-custom">
+          <p className="text-center text-sm font-medium text-slate-400 mb-8 uppercase tracking-wider">
+            Trusted by innovative healthcare companies
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-16">
+            {TRUSTED_BY.map((company, index) => (
+              <motion.div
+                key={company.name}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-center space-x-2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold">
+                  {company.logo}
                 </div>
-              </AnimatedCard>
+                <span className="font-semibold">{company.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Data Connections Section */}
+      <section className="section-padding bg-slate-50">
+        <div className="container-custom">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="badge badge-mint mb-4">
+              <Sparkles className="w-4 h-4 mr-2" aria-hidden="true" />
+              Universal Connectivity
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+              One API for all health data sources
+            </h2>
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+              Connect to patient data across EMRs, payers, and labs with a
+              single integration. No more building and maintaining dozens of
+              separate connections.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+            {DATA_CONNECTIONS.map((connection, index) => (
+              <motion.div
+                key={connection.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+                className="group relative bg-white rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border border-slate-100 hover:border-primary-200"
+              >
+                <div
+                  className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${connection.color} flex items-center justify-center mb-6 shadow-lg`}
+                >
+                  <connection.icon
+                    className="w-7 h-7 text-white"
+                    aria-hidden="true"
+                  />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  {connection.name}
+                </h3>
+                <p className="text-slate-600">{connection.description}</p>
+                <div className="mt-6 flex items-center text-primary-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
+                  Learn more{' '}
+                  <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" />
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 sm:py-28 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              Everything you need to build healthcare apps
+      <section id="features" className="section-padding bg-white">
+        <div className="container-custom">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="badge badge-primary mb-4">
+              <Code2 className="w-4 h-4 mr-2" aria-hidden="true" />
+              Platform Features
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+              Everything you need to build
+              <br className="hidden sm:block" /> healthcare applications
             </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              Stop wrestling with healthcare data. Focus on building great products.
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+              Stop wrestling with healthcare data complexity. Focus on building
+              products that improve patient outcomes.
             </p>
-          </AnimatedSection>
+          </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <AnimatedCard key={feature.title} delay={index * 0.1}>
-                <div className="p-6 rounded-xl bg-white border border-gray-200 hover:border-primary-300 transition-colors h-full">
-                  <div className="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-primary-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600">
-                    {feature.description}
-                  </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {PLATFORM_FEATURES.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -4 }}
+                className="group p-8 rounded-2xl bg-white border border-slate-200 hover:border-primary-200 transition-all duration-300 hover:shadow-lg"
+              >
+                <div className="feature-icon mb-6 group-hover:scale-110 transition-transform">
+                  <feature.icon
+                    className="w-6 h-6 text-primary-600"
+                    aria-hidden="true"
+                  />
                 </div>
-              </AnimatedCard>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  {feature.description}
+                </p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 sm:py-28 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              How it works
-            </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              Get patient health data in three simple steps
-            </p>
-          </AnimatedSection>
+      <section className="section-padding bg-slate-900 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-primary-900" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
 
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
-            {steps.map((step, index) => (
-              <SlideIn key={step.number} delay={index * 0.15} direction={index % 2 === 0 ? 'left' : 'right'}>
-                <div className="relative">
-                  <div className="text-6xl font-bold text-primary-100 mb-4">
+        <div className="relative container-custom">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="badge bg-primary-500/10 text-primary-400 border-primary-500/20 mb-4">
+              <Activity className="w-4 h-4 mr-2" aria-hidden="true" />
+              Simple Integration
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
+              Get started in three steps
+            </h2>
+            <p className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto">
+              From zero to production-ready healthcare data integration in
+              record time
+            </p>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-3 gap-8">
+            {INTEGRATION_STEPS.map((step, index) => (
+              <motion.div
+                key={step.number}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.2 }}
+                className="relative"
+              >
+                {/* Connector line */}
+                {index < INTEGRATION_STEPS.length - 1 && (
+                  <div
+                    className="hidden lg:block absolute top-16 left-full w-full h-px bg-gradient-to-r from-primary-500/50 to-transparent z-0"
+                    aria-hidden="true"
+                  />
+                )}
+
+                <div className="relative bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-8 h-full hover:border-primary-500/50 transition-colors">
+                  <div className="text-6xl font-black text-primary-500/20 mb-4">
                     {step.number}
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-bold text-white mb-3">
                     {step.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-slate-400 leading-relaxed">
                     {step.description}
                   </p>
-                  {index < steps.length - 1 && (
-                    <div className="hidden md:block absolute top-8 right-0 translate-x-1/2">
-                      <ArrowRight className="w-6 h-6 text-gray-300" />
-                    </div>
-                  )}
                 </div>
-              </SlideIn>
+              </motion.div>
             ))}
           </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-12 text-center"
+          >
+            <Button
+              href="/docs"
+              size="lg"
+              className="bg-white text-slate-900 hover:bg-slate-100"
+            >
+              Read the Quickstart Guide
+              <ArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
+            </Button>
+          </motion.div>
         </div>
       </section>
 
-      {/* Data Types Section */}
-      <section className="py-20 sm:py-28 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <SlideIn direction="left">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-                Access comprehensive health data
-              </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Our API provides access to a wide range of patient health information,
-                all normalized to FHIR R4 standards for consistency across providers.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  'Conditions & Diagnoses',
-                  'Medications & Prescriptions',
-                  'Lab Results & Vitals',
-                  'Encounters & Visits',
-                  'Immunizations',
-                  'Claims & Coverage',
-                  'Clinical Notes',
-                  'Allergies',
-                ].map((item) => (
-                  <li key={item} className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-primary-600 mr-3 flex-shrink-0" />
-                    <span className="text-gray-700">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </SlideIn>
-
-            <SlideIn direction="right" delay={0.2}>
-              <div className="rounded-xl bg-gray-900 shadow-xl overflow-hidden">
-                <div className="flex items-center space-x-2 px-4 py-3 bg-gray-800">
-                  <FileText className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-400">Response Example</span>
-                </div>
-                <pre className="p-6 text-sm overflow-x-auto">
-                  <code className="text-gray-300">
-{`{
-  "resourceType": "Condition",
-  "id": "cond-12345",
-  "clinicalStatus": {
-    "coding": [{
-      "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
-      "code": "active"
-    }]
-  },
-  "code": {
-    "coding": [{
-      "system": "http://hl7.org/fhir/sid/icd-10-cm",
-      "code": "E11.9",
-      "display": "Type 2 diabetes mellitus"
-    }]
-  },
-  "onsetDateTime": "2020-03-15"
-}`}
-                  </code>
-                </pre>
-              </div>
-            </SlideIn>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 sm:py-28 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <AnimatedSection className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              Trusted by healthcare innovators
+      {/* Pricing Section */}
+      <section id="pricing" className="section-padding bg-white">
+        <div className="container-custom">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="badge badge-mint mb-4">
+              <Users className="w-4 h-4 mr-2" aria-hidden="true" />
+              Pricing Plans
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+              Simple, transparent pricing
             </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              Teams building the future of healthcare use PlaidHealth
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+              Start with a 14-day free trial. No credit card required. Scale as
+              you grow.
             </p>
-          </AnimatedSection>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <AnimatedCard key={testimonial.author} delay={index * 0.1}>
-                <div className="p-8 rounded-xl bg-white border border-gray-200 h-full flex flex-col">
-                  <blockquote className="text-gray-700 flex-grow">
-                    &ldquo;{testimonial.quote}&rdquo;
-                  </blockquote>
-                  <div className="mt-6 pt-6 border-t border-gray-100">
-                    <div className="font-semibold text-gray-900">
-                      {testimonial.author}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {testimonial.role}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {testimonial.company}
-                    </div>
-                  </div>
+          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {PRICING_TIERS.map((tier, index) => (
+              <motion.div
+                key={tier.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+                className={`relative rounded-2xl p-8 ${
+                  tier.highlighted
+                    ? 'bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-2xl scale-105 border-2 border-primary-500'
+                    : 'bg-white border border-slate-200 hover:border-primary-200'
+                } transition-all duration-300`}
+              >
+                {tier.highlighted && (
+                  <div className="popular-badge">Most Popular</div>
+                )}
+
+                <div className="mb-6">
+                  <h3
+                    className={`text-xl font-bold ${
+                      tier.highlighted ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    {tier.name}
+                  </h3>
+                  <p
+                    className={`mt-2 text-sm ${
+                      tier.highlighted ? 'text-slate-300' : 'text-slate-600'
+                    }`}
+                  >
+                    {tier.description}
+                  </p>
                 </div>
-              </AnimatedCard>
+
+                <div className="mb-6">
+                  <span
+                    className={`text-4xl font-black ${
+                      tier.highlighted ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    {tier.price}
+                  </span>
+                  <span
+                    className={
+                      tier.highlighted ? 'text-slate-300' : 'text-slate-500'
+                    }
+                  >
+                    {tier.period}
+                  </span>
+                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {(tier.features as string[]).map((feature) => (
+                    <li key={feature} className="flex items-start">
+                      <CheckCircle2
+                        className={`w-5 h-5 mr-3 flex-shrink-0 ${
+                          tier.highlighted
+                            ? 'text-primary-400'
+                            : 'text-primary-600'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={
+                          tier.highlighted ? 'text-slate-200' : 'text-slate-600'
+                        }
+                      >
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  href="/contact"
+                  variant={tier.highlighted ? 'primary' : 'outline'}
+                  size="lg"
+                  className={`w-full justify-center ${
+                    tier.highlighted
+                      ? 'bg-white text-slate-900 hover:bg-slate-100'
+                      : ''
+                  }`}
+                >
+                  {tier.cta}
+                </Button>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 sm:py-28 bg-gradient-to-br from-primary-600 to-accent-600">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <AnimatedSection>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+      <section className="section-padding bg-gradient-to-br from-primary-600 via-primary-500 to-mint-500 relative overflow-hidden">
+        {/* Background pattern */}
+        <div
+          className="absolute inset-0 bg-hero-pattern opacity-10"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+
+        <div className="relative container-custom text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight mb-6">
               Ready to build with PlaidHealth?
             </h2>
-            <p className="text-lg text-primary-100 max-w-2xl mx-auto mb-10">
-              Join hundreds of developers building the next generation of healthcare applications.
-              Get started with our free sandbox today.
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10">
+              Join hundreds of developers building the next generation of
+              healthcare applications. Get started with our free sandbox today.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 href="/contact"
-                variant="secondary"
                 size="lg"
-                className="bg-white text-primary-600 hover:bg-gray-100"
+                className="bg-white text-primary-600 hover:bg-slate-100 shadow-xl"
               >
-                Request API Access
+                Get API Access
+                <ArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
               </Button>
               <Button
                 href="/docs"
@@ -412,10 +600,25 @@ console.log(medications.data);
                 size="lg"
                 className="border-white text-white hover:bg-white/10"
               >
-                Read the Docs
+                View Documentation
               </Button>
             </div>
-          </AnimatedSection>
+
+            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-white/60 text-sm">
+              <div className="flex items-center">
+                <Shield className="w-4 h-4 mr-2" aria-hidden="true" />
+                HIPAA Compliant
+              </div>
+              <div className="flex items-center">
+                <Lock className="w-4 h-4 mr-2" aria-hidden="true" />
+                SOC 2 Type II
+              </div>
+              <div className="flex items-center">
+                <Stethoscope className="w-4 h-4 mr-2" aria-hidden="true" />
+                FHIR R4 Ready
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
     </div>
