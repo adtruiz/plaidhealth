@@ -39,3 +39,4 @@ out/
 SESSION_SUMMARY.md
 HANDOFF_TO_NEW_CLAUDE.md
 PHASE2_CONTINUE.md
+*.tsbuildinfo

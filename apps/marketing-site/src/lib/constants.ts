@@ -300,6 +300,85 @@ export const TRUSTED_BY = [
   { name: 'WellPath', logo: 'WP' },
 ] as const
 
+// Customer testimonials
+export interface Testimonial {
+  quote: string
+  author: string
+  role: string
+  company: string
+  avatar: string
+}
+
+export const TESTIMONIALS: Testimonial[] = [
+  {
+    quote: "PlaidHealth cut our integration time from 6 months to 2 weeks. We went from struggling with HL7 to having clean FHIR data flowing.",
+    author: "Sarah Chen",
+    role: "CTO",
+    company: "HealthSync",
+    avatar: "SC",
+  },
+  {
+    quote: "The webhook system is incredibly reliable. We've processed over 2 million patient updates without a single missed event.",
+    author: "Marcus Johnson",
+    role: "Head of Engineering",
+    company: "MedFlow",
+    avatar: "MJ",
+  },
+  {
+    quote: "Their compliance documentation made our HIPAA audit a breeze. The BAA process was straightforward and their team was responsive.",
+    author: "Dr. Emily Rodriguez",
+    role: "Chief Medical Officer",
+    company: "CareStack",
+    avatar: "ER",
+  },
+]
+
+// Security features for deep-dive section
+export interface SecurityFeature {
+  title: string
+  description: string
+  details: string[]
+}
+
+export const SECURITY_FEATURES: SecurityFeature[] = [
+  {
+    title: "Data Encryption",
+    description: "All data encrypted in transit and at rest",
+    details: [
+      "TLS 1.3 for all API communications",
+      "AES-256 encryption for stored data",
+      "Customer-managed encryption keys available",
+    ],
+  },
+  {
+    title: "Access Controls",
+    description: "Fine-grained permissions and audit logging",
+    details: [
+      "Role-based access control (RBAC)",
+      "API key scoping and rotation",
+      "Complete audit trail of all data access",
+    ],
+  },
+  {
+    title: "Compliance",
+    description: "Third-party audited security certifications",
+    details: [
+      "SOC 2 Type II certified",
+      "HIPAA compliant with BAA",
+      "HITRUST CSF ready",
+    ],
+  },
+  {
+    title: "Infrastructure",
+    description: "Enterprise-grade cloud infrastructure",
+    details: [
+      "AWS GovCloud available",
+      "Multi-region redundancy",
+      "99.99% uptime SLA",
+    ],
+  },
+]
+
 // FAQ items
 export interface FAQItem {
   question: string

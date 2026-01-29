@@ -1,6 +1,6 @@
 # PlaidHealth - Project Status
 
-**Last Updated:** January 4, 2026
+**Last Updated:** January 28, 2026
 
 ## Project Overview
 
@@ -95,8 +95,16 @@ plaidhealth/
 | User Registration | **Complete** | Email/password auth |
 | User Login/Logout | **Complete** | Session-based authentication |
 | Dashboard Overview | **Complete** | Key metrics display |
+| API Endpoint Status | **Complete** | Per-endpoint health monitoring |
+| Recent Errors Display | **Complete** | With copyable request IDs |
 | API Key Management | **Complete** | Create, revoke, delete keys |
+| Webhooks Management | **Complete** | Create endpoints, view deliveries |
+| Team Management | **Complete** | Invite members, role-based access |
 | Usage Analytics | **Complete** | Charts and metrics |
+| Environment Switcher | **Complete** | Sandbox/Production toggle |
+| Global Search | **Complete** | Search docs and keys |
+| Dark Mode | **Complete** | System-aware theme |
+| Loading Skeletons | **Complete** | Smooth loading states |
 | API Documentation | UI Ready | Needs content |
 | SDK Downloads | UI Ready | Needs SDKs |
 
@@ -105,9 +113,13 @@ plaidhealth/
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Home Page | **Complete** | Hero, features, CTA |
+| Customer Testimonials | **Complete** | 3 customer quotes |
+| API Playground | **Complete** | Interactive code examples |
+| Security Section | **Complete** | Deep-dive with certifications |
 | Pricing Page | **Complete** | Tier comparison |
 | About Page | **Complete** | Company info |
 | Contact Form | **Complete** | Wired to API |
+| SEO Metadata | **Complete** | Open Graph, Twitter cards |
 | Blog | UI Ready | Needs content |
 | Documentation | Linked | Links to portal docs |
 
@@ -286,20 +298,36 @@ railway variables
 
 ---
 
-## Files Modified in Latest Session
+## Files Modified in Latest Session (January 28, 2026)
 
+### Marketing Site
 | File | Change |
 |------|--------|
-| `apps/api/src/routes/developer.js` | Added email validation, session cleanup |
-| `apps/api/src/routes/contact.js` | NEW - Contact form endpoint |
-| `apps/api/src/server.js` | Added contact routes |
-| `apps/api/migrations/006_add_developer_auth.sql` | NEW - Password auth migration |
-| `apps/api/migrations/007_add_contact_submissions.sql` | NEW - Contact form table |
-| `apps/developer-portal/src/lib/api.ts` | NEW - API client |
-| `apps/developer-portal/src/lib/auth.tsx` | Wired to real API |
-| `apps/developer-portal/src/app/(dashboard)/api-keys/page.tsx` | Wired to real API |
-| `apps/developer-portal/src/app/(dashboard)/usage/page.tsx` | Wired to real API |
-| `apps/marketing-site/src/app/contact/page.tsx` | Wired to real API |
+| `apps/marketing-site/src/app/page.tsx` | Added testimonials, API playground, security section |
+| `apps/marketing-site/src/app/layout.tsx` | Enhanced metadata (Open Graph, Twitter cards) |
+| `apps/marketing-site/src/lib/constants.ts` | Added TESTIMONIALS, SECURITY_FEATURES data |
+| `apps/marketing-site/README.md` | Updated with new features |
+
+### Developer Portal
+| File | Change |
+|------|--------|
+| `apps/developer-portal/src/app/(dashboard)/page.tsx` | Added API status, recent errors, loading skeletons |
+| `apps/developer-portal/src/app/(dashboard)/webhooks/page.tsx` | NEW - Webhook management page |
+| `apps/developer-portal/src/app/(dashboard)/team/page.tsx` | NEW - Team management page |
+| `apps/developer-portal/src/app/layout.tsx` | Enhanced metadata |
+| `apps/developer-portal/src/components/dashboard-layout.tsx` | Added environment switcher, global search |
+| `apps/developer-portal/src/components/metric-card.tsx` | Added loading skeleton support |
+| `apps/developer-portal/src/components/ui/skeleton.tsx` | NEW - Skeleton component |
+| `apps/developer-portal/README.md` | Updated with new features |
+
+### API (Previous Session)
+| File | Change |
+|------|--------|
+| `apps/api/src/code-lookup.js` | Added NDC, SNOMED, CPT/HCPCS lookups with cache eviction |
+| `apps/api/src/middleware/auth.js` | Added tier functions (isEnrichmentEnabled, getDataTier) |
+| `apps/api/src/normalizers/conditions.js` | Made async for SNOMED lookup |
+| `apps/api/src/routes/fhir.js` | Added tier support to all endpoints |
+| `apps/api/src/mappings/cpt-hcpcs.json` | NEW - CPT/HCPCS/DRG code mappings |
 
 ---
 

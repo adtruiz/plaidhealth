@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -9,6 +10,7 @@ interface MetricCardProps {
   changeType?: 'positive' | 'negative' | 'neutral'
   icon: React.ElementType
   description?: string
+  loading?: boolean
 }
 
 export function MetricCard({
@@ -18,7 +20,25 @@ export function MetricCard({
   changeType = 'neutral',
   icon: Icon,
   description,
+  loading = false,
 }: MetricCardProps) {
+  if (loading) {
+    return (
+      <Card className="relative overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-12 w-12 rounded-xl" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="relative overflow-hidden">
       <CardContent className="p-6">

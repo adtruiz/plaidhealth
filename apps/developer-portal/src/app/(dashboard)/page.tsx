@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MetricCard } from '@/components/metric-card'
 import {
   Activity,
@@ -16,6 +17,10 @@ import {
   Clock,
   Key,
   Zap,
+  AlertTriangle,
+  XCircle,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -67,6 +72,37 @@ const mockRecentActivity: RecentActivity[] = [
   { type: 'api_call', endpoint: 'GET /patients/{id}/labs', status: 'error', time: '3 hours ago', statusCode: 500 },
 ]
 
+interface APIEndpointStatus {
+  name: string
+  path: string
+  status: 'operational' | 'degraded' | 'down'
+  latency: number
+  uptime: string
+}
+
+interface RecentError {
+  id: string
+  endpoint: string
+  statusCode: number
+  message: string
+  time: string
+  requestId: string
+}
+
+const mockAPIStatus: APIEndpointStatus[] = [
+  { name: 'Patient Records', path: '/v1/patients/{id}/records', status: 'operational', latency: 145, uptime: '99.99%' },
+  { name: 'Medications', path: '/v1/patients/{id}/medications', status: 'operational', latency: 132, uptime: '99.98%' },
+  { name: 'Lab Results', path: '/v1/patients/{id}/labs', status: 'operational', latency: 156, uptime: '99.97%' },
+  { name: 'Conditions', path: '/v1/patients/{id}/conditions', status: 'operational', latency: 128, uptime: '99.99%' },
+  { name: 'Connections', path: '/v1/connections', status: 'operational', latency: 89, uptime: '100%' },
+]
+
+const mockRecentErrors: RecentError[] = [
+  { id: 'err_001', endpoint: 'GET /v1/patients/pt_xyz/labs', statusCode: 500, message: 'Internal server error: Provider timeout', time: '3 hours ago', requestId: 'req_abc123' },
+  { id: 'err_002', endpoint: 'GET /v1/patients/pt_abc/records', statusCode: 429, message: 'Rate limit exceeded', time: '5 hours ago', requestId: 'req_def456' },
+  { id: 'err_003', endpoint: 'POST /v1/connections/link', statusCode: 400, message: 'Invalid provider_id', time: '8 hours ago', requestId: 'req_ghi789' },
+]
+
 function getGreeting(): string {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -88,6 +124,13 @@ export default function DashboardPage() {
   })
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyRequestId = (id: string) => {
+    navigator.clipboard.writeText(id)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   const loadDashboardData = useCallback(async () => {
     setIsLoading(true)
@@ -159,6 +202,7 @@ export default function DashboardPage() {
           change={stats.apiCallsChange}
           changeType="positive"
           icon={Activity}
+          loading={isLoading}
         />
         <MetricCard
           title="Active API Keys"
@@ -166,6 +210,7 @@ export default function DashboardPage() {
           change={stats.connectionsChange}
           changeType="positive"
           icon={Key}
+          loading={isLoading}
         />
         <MetricCard
           title="Success Rate"
@@ -173,6 +218,7 @@ export default function DashboardPage() {
           change={stats.successRateChange}
           changeType="positive"
           icon={CheckCircle2}
+          loading={isLoading}
         />
         <MetricCard
           title="Avg Response Time"
@@ -180,6 +226,7 @@ export default function DashboardPage() {
           change={stats.responseTimeChange}
           changeType="positive"
           icon={Clock}
+          loading={isLoading}
         />
       </div>
 
@@ -291,6 +338,85 @@ export default function DashboardPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* API Endpoint Status & Recent Errors */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* API Endpoint Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              API Endpoint Status
+            </CardTitle>
+            <CardDescription>Real-time status of API endpoints</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {mockAPIStatus.map((endpoint) => (
+                <div key={endpoint.path} className="flex items-center gap-3 text-sm">
+                  <div className={cn(
+                    'h-2 w-2 rounded-full',
+                    endpoint.status === 'operational' && 'bg-emerald-500',
+                    endpoint.status === 'degraded' && 'bg-amber-500',
+                    endpoint.status === 'down' && 'bg-red-500'
+                  )} />
+                  <span className="flex-1 font-medium">{endpoint.name}</span>
+                  <span className="text-xs text-muted-foreground font-mono">{endpoint.latency}ms</span>
+                  <span className="text-xs text-muted-foreground">{endpoint.uptime}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Errors */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Recent Errors
+            </CardTitle>
+            <CardDescription>Last 24 hours of API errors</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {mockRecentErrors.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
+                <p className="text-sm text-muted-foreground">No errors in the last 24 hours</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {mockRecentErrors.map((error) => (
+                  <div key={error.id} className="p-3 rounded-lg border border-red-500/20 bg-red-500/5">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-10 items-center justify-center rounded bg-red-500/20 text-xs font-medium text-red-600 dark:text-red-400">
+                          {error.statusCode}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{error.time}</span>
+                      </div>
+                      <button
+                        onClick={() => copyRequestId(error.requestId)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        title="Copy request ID"
+                      >
+                        {copiedId === error.requestId ? (
+                          <Check className="h-3 w-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                        {error.requestId}
+                      </button>
+                    </div>
+                    <p className="text-xs font-mono text-muted-foreground truncate">{error.endpoint}</p>
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Getting Started Section for new users */}
       {stats.apiCalls === '0' && (

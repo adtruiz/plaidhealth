@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useState } from 'react'
 import {
   Shield,
   Lock,
@@ -12,6 +13,14 @@ import {
   Stethoscope,
   ChevronRight,
   Code2,
+  Quote,
+  Play,
+  Copy,
+  Check,
+  ShieldCheck,
+  KeyRound,
+  Server,
+  FileCheck,
 } from 'lucide-react'
 import Button from '@/components/Button'
 import {
@@ -20,6 +29,8 @@ import {
   INTEGRATION_STEPS,
   PRICING_TIERS,
   TRUSTED_BY,
+  TESTIMONIALS,
+  SECURITY_FEATURES,
 } from '@/lib/constants'
 
 // Animation variants
@@ -34,6 +45,236 @@ const staggerContainer = {
       staggerChildren: 0.1,
     },
   },
+}
+
+const API_EXAMPLES = [
+  {
+    name: 'Get Patient Medications',
+    method: 'GET',
+    endpoint: '/v1/patients/{id}/medications',
+    code: `const response = await fetch(
+  'https://api.plaidhealth.com/v1/patients/pt_abc123/medications',
+  {
+    headers: {
+      'Authorization': 'Bearer sk_live_...',
+      'Content-Type': 'application/json'
+    }
+  }
+);
+
+const { data } = await response.json();`,
+    response: `{
+  "data": [
+    {
+      "resourceType": "MedicationStatement",
+      "id": "med_001",
+      "status": "active",
+      "medicationCodeableConcept": {
+        "coding": [{
+          "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+          "code": "197361",
+          "display": "Lisinopril 10 MG Oral Tablet"
+        }]
+      },
+      "dosage": [{
+        "text": "Take 1 tablet by mouth daily"
+      }]
+    }
+  ],
+  "meta": { "tier": "enriched" }
+}`
+  },
+  {
+    name: 'Get Lab Results',
+    method: 'GET',
+    endpoint: '/v1/patients/{id}/labs',
+    code: `const response = await fetch(
+  'https://api.plaidhealth.com/v1/patients/pt_abc123/labs',
+  {
+    headers: {
+      'Authorization': 'Bearer sk_live_...',
+      'Content-Type': 'application/json'
+    }
+  }
+);
+
+const { data } = await response.json();`,
+    response: `{
+  "data": [
+    {
+      "resourceType": "Observation",
+      "id": "obs_001",
+      "status": "final",
+      "code": {
+        "coding": [{
+          "system": "http://loinc.org",
+          "code": "2339-0",
+          "display": "Glucose [Mass/volume] in Blood"
+        }]
+      },
+      "valueQuantity": {
+        "value": 95,
+        "unit": "mg/dL"
+      }
+    }
+  ]
+}`
+  },
+  {
+    name: 'Create Connection',
+    method: 'POST',
+    endpoint: '/v1/connections/link',
+    code: `const response = await fetch(
+  'https://api.plaidhealth.com/v1/connections/link',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer sk_live_...',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      provider_id: 'epic_mychart',
+      redirect_uri: 'https://yourapp.com/callback'
+    })
+  }
+);
+
+const { link_url } = await response.json();`,
+    response: `{
+  "link_url": "https://connect.plaidhealth.com/link/abc123",
+  "expires_at": "2024-01-15T12:00:00Z",
+  "session_id": "sess_xyz789"
+}`
+  }
+]
+
+function APIPlayground() {
+  const [activeExample, setActiveExample] = useState(0)
+  const [activeTab, setActiveTab] = useState<'request' | 'response'>('request')
+  const [copied, setCopied] = useState(false)
+
+  const example = API_EXAMPLES[activeExample]
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(activeTab === 'request' ? example.code : example.response)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <section className="section-padding bg-white">
+      <div className="container-custom">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <span className="badge badge-primary mb-4">
+            <Play className="w-4 h-4 mr-2" aria-hidden="true" />
+            API Playground
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+            Try the API
+          </h2>
+          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+            Explore our API with real code examples. Copy and paste into your project.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-5xl mx-auto"
+        >
+          {/* Example selector tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {API_EXAMPLES.map((ex, index) => (
+              <button
+                key={ex.name}
+                onClick={() => setActiveExample(index)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeExample === index
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-mono mr-2 ${
+                  ex.method === 'GET' ? 'bg-emerald-500/20 text-emerald-700' : 'bg-blue-500/20 text-blue-700'
+                }`}>
+                  {ex.method}
+                </span>
+                {ex.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Code display */}
+          <div className="bg-slate-900 rounded-2xl overflow-hidden shadow-2xl">
+            {/* Browser chrome */}
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <div className="ml-4 px-3 py-1 bg-slate-700 rounded text-xs text-slate-400 font-mono">
+                  {example.endpoint}
+                </div>
+              </div>
+              <button
+                onClick={copyCode}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-slate-700">
+              <button
+                onClick={() => setActiveTab('request')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === 'request'
+                    ? 'text-white border-b-2 border-primary-500'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Request
+              </button>
+              <button
+                onClick={() => setActiveTab('response')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === 'response'
+                    ? 'text-white border-b-2 border-primary-500'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Response
+              </button>
+            </div>
+
+            {/* Code content */}
+            <div className="p-6 overflow-x-auto">
+              <pre className="text-sm font-mono text-slate-300 leading-relaxed">
+                <code>{activeTab === 'request' ? example.code : example.response}</code>
+              </pre>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <Button href="/docs" variant="outline">
+              Explore Full API Reference
+              <ArrowRight className="ml-2 w-4 h-4" aria-hidden="true" />
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
 }
 
 export default function Home() {
@@ -436,6 +677,125 @@ export default function Home() {
               className="bg-white text-slate-900 hover:bg-slate-100"
             >
               Read the Quickstart Guide
+              <ArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="section-padding bg-slate-50">
+        <div className="container-custom">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="badge badge-primary mb-4">
+              <Quote className="w-4 h-4 mr-2" aria-hidden="true" />
+              Customer Stories
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+              Trusted by healthcare innovators
+            </h2>
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+              See how companies are building better healthcare experiences with PlaidHealth
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {TESTIMONIALS.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.author}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+                className="bg-white rounded-2xl p-8 shadow-card border border-slate-100"
+              >
+                <Quote className="w-8 h-8 text-primary-200 mb-4" aria-hidden="true" />
+                <p className="text-slate-700 leading-relaxed mb-6">
+                  &quot;{testimonial.quote}&quot;
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-mint-500 flex items-center justify-center text-white font-bold">
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{testimonial.author}</p>
+                    <p className="text-sm text-slate-500">{testimonial.role}, {testimonial.company}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* API Playground Section */}
+      <APIPlayground />
+
+      {/* Security Section */}
+      <section id="security" className="section-padding bg-slate-50">
+        <div className="container-custom">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="badge badge-mint mb-4">
+              <ShieldCheck className="w-4 h-4 mr-2" aria-hidden="true" />
+              Enterprise Security
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+              Security you can trust
+            </h2>
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+              Built from the ground up for healthcare compliance and data protection
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {SECURITY_FEATURES.map((feature, index) => {
+              const icons = [KeyRound, Shield, FileCheck, Server]
+              const Icon = icons[index]
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white rounded-2xl p-6 shadow-card border border-slate-100"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary-500/10 flex items-center justify-center mb-4">
+                    <Icon className="w-6 h-6 text-primary-600" aria-hidden="true" />
+                  </div>
+                  <h3 className="font-bold text-slate-900 mb-2">{feature.title}</h3>
+                  <p className="text-sm text-slate-600 mb-4">{feature.description}</p>
+                  <ul className="space-y-2">
+                    {feature.details.map((detail) => (
+                      <li key={detail} className="flex items-start text-sm text-slate-500">
+                        <CheckCircle2 className="w-4 h-4 text-mint-500 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        {detail}
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )
+            })}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-12 text-center"
+          >
+            <Button href="/security" variant="outline" size="lg">
+              View Security Documentation
               <ArrowRight className="ml-2 w-5 h-5" aria-hidden="true" />
             </Button>
           </motion.div>

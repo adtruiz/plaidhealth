@@ -7,8 +7,23 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PlaidHealth Developer Portal',
-  description: 'Build healthcare integrations with the PlaidHealth API',
+  title: {
+    default: 'PlaidHealth Developer Portal',
+    template: '%s | PlaidHealth Portal',
+  },
+  description: 'Build healthcare integrations with the PlaidHealth API. Access documentation, manage API keys, and monitor usage.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://dashboard.plaidhealth.com',
+    siteName: 'PlaidHealth Developer Portal',
+    title: 'PlaidHealth Developer Portal',
+    description: 'Build healthcare integrations with the PlaidHealth API. Access documentation, manage API keys, and monitor usage.',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 export default function RootLayout({

@@ -36,16 +36,28 @@ import {
   Sun,
   X,
   Zap,
+  Search,
+  Webhook,
+  Users,
+  ChevronDown,
+  Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'API Keys', href: '/api-keys', icon: Key },
+  { name: 'Webhooks', href: '/webhooks', icon: Webhook },
   { name: 'Usage', href: '/usage', icon: BarChart3 },
+  { name: 'Team', href: '/team', icon: Users },
   { name: 'Documentation', href: '/docs', icon: Book },
   { name: 'Quickstart', href: '/quickstart', icon: Zap },
   { name: 'SDKs', href: '/sdks', icon: Package },
+] as const
+
+const environments = [
+  { id: 'sandbox', name: 'Sandbox', color: 'bg-amber-500', textColor: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-500/10' },
+  { id: 'production', name: 'Production', color: 'bg-emerald-500', textColor: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
 ] as const
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -53,6 +65,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [environment, setEnvironment] = useState<'sandbox' | 'production'>('sandbox')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  const currentEnv = environments.find(e => e.id === environment) || environments[0]
 
   const initials = user?.name
     ?.split(' ')
@@ -199,13 +216,50 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Menu className="h-5 w-5" />
             </Button>
 
-            <div className="flex-1" />
-
-            {/* Environment Badge */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Sandbox
+            {/* Search */}
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search docs, API keys..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-9 pl-9 pr-4 rounded-lg border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                  ⌘K
+                </kbd>
+              </div>
             </div>
+
+            {/* Environment Switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg ${currentEnv.bgColor} ${currentEnv.textColor} text-xs font-medium hover:opacity-80 transition-opacity`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${currentEnv.color} ${environment === 'sandbox' ? 'animate-pulse' : ''}`} />
+                  {currentEnv.name}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Environment</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {environments.map((env) => (
+                  <DropdownMenuItem
+                    key={env.id}
+                    onClick={() => setEnvironment(env.id as 'sandbox' | 'production')}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${env.color}`} />
+                      {env.name}
+                    </div>
+                    {environment === env.id && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Theme toggle */}
             <Tooltip>
