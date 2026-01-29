@@ -1,6 +1,6 @@
 # OAuth Agent Context
 
-Quick reference for OAuth-related work in PlaidHealth.
+Quick reference for OAuth-related work in VerziHealth.
 
 ## Architecture Overview
 

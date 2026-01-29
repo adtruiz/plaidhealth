@@ -106,7 +106,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Activity className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold sidebar-foreground">PlaidHealth</span>
+            <span className="text-lg font-semibold sidebar-foreground">VerziHealth</span>
             <Button
               variant="ghost"
               size="icon"

@@ -1,5 +1,5 @@
 /**
- * Plaid for Healthcare Connect Widget SDK
+ * VerziHealth Connect Widget SDK
  *
  * Embeddable widget for connecting patient health records.
  * Similar to Plaid Link, but for healthcare data.

@@ -1,4 +1,4 @@
-# Plaid for Healthcare API v1
+# VerziHealth API v1
 
 ## Overview
 

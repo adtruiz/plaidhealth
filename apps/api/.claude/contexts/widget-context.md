@@ -1,6 +1,6 @@
 # Widget Agent Context
 
-Quick reference for Widget/B2B API work in PlaidHealth.
+Quick reference for Widget/B2B API work in VerziHealth.
 
 ## Architecture Overview
 

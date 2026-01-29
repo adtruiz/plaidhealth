@@ -32,8 +32,8 @@ export const FOOTER_NAVIGATION = {
   developers: [
     { name: 'API Reference', href: '/docs' },
     { name: 'SDKs & Libraries', href: '/docs#sdks' },
-    { name: 'Status', href: 'https://status.plaidhealth.com' },
-    { name: 'GitHub', href: 'https://github.com/plaidhealth' },
+    { name: 'Status', href: 'https://status.verzihealth.com' },
+    { name: 'GitHub', href: 'https://github.com/verzihealth' },
     { name: 'Support', href: '/support' },
   ],
   company: [
@@ -54,9 +54,9 @@ export const FOOTER_NAVIGATION = {
 
 // Social links
 export const SOCIAL_LINKS = [
-  { name: 'GitHub', href: 'https://github.com/plaidhealth' },
-  { name: 'Twitter', href: 'https://twitter.com/plaidhealth' },
-  { name: 'LinkedIn', href: 'https://linkedin.com/company/plaidhealth' },
+  { name: 'GitHub', href: 'https://github.com/verzihealth' },
+  { name: 'Twitter', href: 'https://twitter.com/verzihealth' },
+  { name: 'LinkedIn', href: 'https://linkedin.com/company/verzihealth' },
 ] as const
 
 // Pricing tiers (shared between home page and pricing page)
@@ -276,7 +276,7 @@ export interface IntegrationStep {
 export const INTEGRATION_STEPS: IntegrationStep[] = [
   {
     number: '01',
-    title: 'Embed PlaidHealth Connect',
+    title: 'Embed VerziHealth Connect',
     description: 'Add our pre-built Connect widget to your application. Patients select their healthcare provider and securely authorize access to their data.',
   },
   {
@@ -311,7 +311,7 @@ export interface Testimonial {
 
 export const TESTIMONIALS: Testimonial[] = [
   {
-    quote: "PlaidHealth cut our integration time from 6 months to 2 weeks. We went from struggling with HL7 to having clean FHIR data flowing.",
+    quote: "VerziHealth cut our integration time from 6 months to 2 weeks. We went from struggling with HL7 to having clean FHIR data flowing.",
     author: "Sarah Chen",
     role: "CTO",
     company: "HealthSync",
@@ -417,14 +417,14 @@ export const CONTACT_METHODS = [
   {
     title: 'Email Us',
     description: 'For general inquiries',
-    value: 'hello@plaidhealth.com',
-    href: 'mailto:hello@plaidhealth.com',
+    value: 'hello@verzihealth.com',
+    href: 'mailto:hello@verzihealth.com',
   },
   {
     title: 'Sales',
     description: 'For pricing & demos',
-    value: 'sales@plaidhealth.com',
-    href: 'mailto:sales@plaidhealth.com',
+    value: 'sales@verzihealth.com',
+    href: 'mailto:sales@verzihealth.com',
   },
   {
     title: 'Headquarters',

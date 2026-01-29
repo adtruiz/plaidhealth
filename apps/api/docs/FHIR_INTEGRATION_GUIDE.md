@@ -751,6 +751,6 @@ This is a living document. If you integrate with additional healthcare providers
 
 ---
 
-**Created by**: Plaid for Healthcare Project
+**Created by**: VerziHealth Project
 **License**: Open Source (MIT)
 **Last Updated**: October 17, 2025

@@ -53,7 +53,7 @@ const API_EXAMPLES = [
     method: 'GET',
     endpoint: '/v1/patients/{id}/medications',
     code: `const response = await fetch(
-  'https://api.plaidhealth.com/v1/patients/pt_abc123/medications',
+  'https://api.verzihealth.com/v1/patients/pt_abc123/medications',
   {
     headers: {
       'Authorization': 'Bearer sk_live_...',
@@ -89,7 +89,7 @@ const { data } = await response.json();`,
     method: 'GET',
     endpoint: '/v1/patients/{id}/labs',
     code: `const response = await fetch(
-  'https://api.plaidhealth.com/v1/patients/pt_abc123/labs',
+  'https://api.verzihealth.com/v1/patients/pt_abc123/labs',
   {
     headers: {
       'Authorization': 'Bearer sk_live_...',
@@ -125,7 +125,7 @@ const { data } = await response.json();`,
     method: 'POST',
     endpoint: '/v1/connections/link',
     code: `const response = await fetch(
-  'https://api.plaidhealth.com/v1/connections/link',
+  'https://api.verzihealth.com/v1/connections/link',
   {
     method: 'POST',
     headers: {
@@ -141,7 +141,7 @@ const { data } = await response.json();`,
 
 const { link_url } = await response.json();`,
     response: `{
-  "link_url": "https://connect.plaidhealth.com/link/abc123",
+  "link_url": "https://connect.verzihealth.com/link/abc123",
   "expires_at": "2024-01-15T12:00:00Z",
   "session_id": "sess_xyz789"
 }`
@@ -308,7 +308,7 @@ export default function Home() {
                 variants={fadeInUp}
                 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 tracking-tight leading-[1.1]"
               >
-                The <span className="gradient-text">Plaid for Healthcare</span>
+                The <span className="gradient-text">VerziHealth</span>
               </motion.h1>
 
               <motion.p
@@ -372,7 +372,7 @@ export default function Home() {
                   <div className="flex-1 mx-4">
                     <div className="bg-slate-700 rounded-md px-3 py-1 text-xs text-slate-400 flex items-center">
                       <Lock className="w-3 h-3 mr-2 text-mint-400" aria-hidden="true" />
-                      api.plaidhealth.com/v1/patients
+                      api.verzihealth.com/v1/patients
                     </div>
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function Home() {
                       <span className="text-slate-300">medications</span>{' '}
                       <span className="text-slate-500">=</span>{' '}
                       <span className="text-purple-400">await</span>{' '}
-                      <span className="text-mint-400">plaidhealth</span>
+                      <span className="text-mint-400">verzihealth</span>
                       <span className="text-slate-300">.medications.</span>
                       <span className="text-primary-400">list</span>
                       <span className="text-slate-300">({'{'}</span>
@@ -700,7 +700,7 @@ export default function Home() {
               Trusted by healthcare innovators
             </h2>
             <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-              See how companies are building better healthcare experiences with PlaidHealth
+              See how companies are building better healthcare experiences with VerziHealth
             </p>
           </motion.div>
 
@@ -939,7 +939,7 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight mb-6">
-              Ready to build with PlaidHealth?
+              Ready to build with VerziHealth?
             </h2>
             <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10">
               Join hundreds of developers building the next generation of

@@ -1,4 +1,4 @@
-# PlaidHealth Multi-Agent Development
+# VerziHealth Multi-Agent Development
 
 This directory contains configuration for multi-agent development workflows.
 
@@ -37,7 +37,7 @@ Before starting work, read the relevant files:
 
 For larger features, create a worktree:
 ```bash
-git worktree add ../plaidhealth-{feature} feature/{agent}-{description}
+git worktree add ../verzihealth-{feature} feature/{agent}-{description}
 ```
 
 ## Agent Communication
@@ -96,8 +96,8 @@ curl http://localhost:3000/health
 ### Production Verification
 ```bash
 # After deploy, verify health
-curl https://stripe-healthcare-production.up.railway.app/health
-curl https://stripe-healthcare-production.up.railway.app/ready
+curl https://verzihealth-production.up.railway.app/health
+curl https://verzihealth-production.up.railway.app/ready
 ```
 
 ## Deployment

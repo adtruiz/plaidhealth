@@ -6,14 +6,14 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: plaidhealth-api
+    container_name: verzihealth-api
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-plaidhealth}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-plaidhealth}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-verzihealth}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-verzihealth}
       - REDIS_URL=redis://redis:6379
       - SESSION_SECRET=${SESSION_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -37,33 +37,33 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - plaidhealth-network
+      - verzihealth-network
 
   postgres:
     image: postgres:16-alpine
-    container_name: plaidhealth-postgres
+    container_name: verzihealth-postgres
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-plaidhealth}
+      - POSTGRES_USER=${POSTGRES_USER:-verzihealth}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB:-plaidhealth}
+      - POSTGRES_DB=${POSTGRES_DB:-verzihealth}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-plaidhealth} -d ${POSTGRES_DB:-plaidhealth}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-verzihealth} -d ${POSTGRES_DB:-verzihealth}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     networks:
-      - plaidhealth-network
+      - verzihealth-network
     # Note: In production, don't expose postgres port externally
     # ports:
     #   - "5432:5432"
 
   redis:
     image: redis:7-alpine
-    container_name: plaidhealth-redis
+    container_name: verzihealth-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
@@ -75,7 +75,7 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      - plaidhealth-network
+      - verzihealth-network
     # Note: In production, don't expose redis port externally
     # ports:
     #   - "6379:6379"
@@ -87,5 +87,5 @@ volumes:
     driver: local
 
 networks:
-  plaidhealth-network:
+  verzihealth-network:
     driver: bridge

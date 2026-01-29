@@ -41,7 +41,7 @@ const apiEndpoints: ApiCategory[] = [
         method: 'POST',
         path: '/connections/link',
         summary: 'Initialize a connection link',
-        description: 'Creates a link token for the PlaidHealth Connect widget to initiate a patient connection.',
+        description: 'Creates a link token for the VerziHealth Connect widget to initiate a patient connection.',
         requestBody: {
           patient_id: 'string',
           redirect_uri: 'string',
@@ -219,7 +219,7 @@ function getEndpointKey(endpoint: ApiEndpoint): string {
 }
 
 function generateCurlExample(endpoint: ApiEndpoint): string {
-  const baseUrl = 'https://api.plaidhealth.com/v1'
+  const baseUrl = 'https://api.verzihealth.com/v1'
   const path = endpoint.path.replace('{id}', 'pat_123')
   const hasBody = endpoint.requestBody
 
@@ -291,7 +291,7 @@ export default function DocsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">API Documentation</h1>
           <p className="text-muted-foreground">
-            Complete reference for the PlaidHealth API ({totalEndpoints} endpoints)
+            Complete reference for the VerziHealth API ({totalEndpoints} endpoints)
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -323,10 +323,10 @@ export default function DocsPage() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => copyToClipboard('https://api.plaidhealth.com/v1')}
+                onClick={() => copyToClipboard('https://api.verzihealth.com/v1')}
                 aria-label="Copy base URL"
               >
-                {copiedText === 'https://api.plaidhealth.com/v1' ? (
+                {copiedText === 'https://api.verzihealth.com/v1' ? (
                   <Check className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <Copy className="h-4 w-4" />
@@ -334,7 +334,7 @@ export default function DocsPage() {
               </Button>
             </div>
             <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-              https://api.plaidhealth.com/v1
+              https://api.verzihealth.com/v1
             </code>
           </CardContent>
         </Card>

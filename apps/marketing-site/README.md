@@ -1,6 +1,6 @@
-# PlaidHealth Marketing Site
+# VerziHealth Marketing Site
 
-Public-facing marketing website for PlaidHealth - The Plaid for Healthcare API.
+Public-facing marketing website for VerziHealth - The VerziHealth API.
 
 ## Features
 

@@ -32,7 +32,7 @@ const steps = [
   {
     number: 2,
     title: 'Install the SDK',
-    description: 'Add the PlaidHealth SDK to your project.',
+    description: 'Add the VerziHealth SDK to your project.',
     icon: Code2,
     color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   },
@@ -53,20 +53,20 @@ const steps = [
 ] as const
 
 const installCode: Record<Language, string> = {
-  javascript: 'npm install @plaidhealth/sdk',
-  python: 'pip install plaidhealth',
+  javascript: 'npm install @verzihealth/sdk',
+  python: 'pip install verzihealth',
 }
 
 const initCode: Record<Language, string> = {
-  javascript: `import { PlaidHealth } from '@plaidhealth/sdk';
+  javascript: `import { VerziHealth } from '@verzihealth/sdk';
 
-const client = new PlaidHealth({
+const client = new VerziHealth({
   apiKey: process.env.PLAIDHEALTH_API_KEY,
   environment: 'sandbox', // or 'production'
 });`,
-  python: `from plaidhealth import PlaidHealth
+  python: `from verzihealth import VerziHealth
 
-client = PlaidHealth(
+client = VerziHealth(
     api_key=os.environ['PLAIDHEALTH_API_KEY'],
     environment='sandbox'  # or 'production'
 )`,
@@ -80,9 +80,9 @@ const linkToken = await client.connections.createLinkToken({
 });
 
 // Client-side: Open the Connect widget
-import { openPlaidHealthConnect } from '@plaidhealth/sdk/browser';
+import { openVerziHealthConnect } from '@verzihealth/sdk/browser';
 
-openPlaidHealthConnect({
+openVerziHealthConnect({
   token: linkToken,
   onSuccess: async (publicToken) => {
     // Exchange public token for access token (server-side)
@@ -168,7 +168,7 @@ export default function QuickstartPage() {
         </div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Quickstart Guide</h1>
         <p className="text-muted-foreground mt-2">
-          Get started with PlaidHealth in under 5 minutes. This guide walks you through
+          Get started with VerziHealth in under 5 minutes. This guide walks you through
           connecting healthcare providers and fetching patient data.
         </p>
       </div>
@@ -260,12 +260,12 @@ export default function QuickstartPage() {
           </div>
           <div>
             <h2 className="text-xl font-bold">Install the SDK</h2>
-            <p className="text-sm text-muted-foreground">Add PlaidHealth to your project</p>
+            <p className="text-sm text-muted-foreground">Add VerziHealth to your project</p>
           </div>
         </div>
 
         <p className="text-muted-foreground">
-          Install the PlaidHealth SDK for your platform:
+          Install the VerziHealth SDK for your platform:
         </p>
 
         <CodeBlock
@@ -281,7 +281,7 @@ export default function QuickstartPage() {
         <CodeBlock
           code={initCode[language]}
           language={language === 'javascript' ? 'typescript' : 'python'}
-          filename={language === 'javascript' ? 'plaidhealth.ts' : 'plaidhealth.py'}
+          filename={language === 'javascript' ? 'verzihealth.ts' : 'verzihealth.py'}
         />
 
         <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm">
@@ -354,7 +354,7 @@ export default function QuickstartPage() {
           <div className="flex-1">
             <h3 className="font-semibold text-emerald-600 dark:text-emerald-400">You&apos;re all set!</h3>
             <p className="text-sm text-muted-foreground">
-              You now have everything you need to start building with PlaidHealth.
+              You now have everything you need to start building with VerziHealth.
             </p>
           </div>
         </CardContent>

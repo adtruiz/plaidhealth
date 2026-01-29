@@ -2,7 +2,7 @@
 
 **Last Updated:** October 30, 2025
 
-This document tracks all FHIR integrations for the Plaid for Healthcare platform, including implementation status, credentials, and testing notes.
+This document tracks all FHIR integrations for the VerziHealth platform, including implementation status, credentials, and testing notes.
 
 ---
 
@@ -582,7 +582,7 @@ The sandbox uses a **test-specific authorization endpoint**:
 - Ready for testing once callback URI is registered in portal
 
 ### Next Steps
-1. Register callback URI in BCBS TN developer portal: `https://stripe-healthcare-production.up.railway.app/callback`
+1. Register callback URI in BCBS TN developer portal: `https://verzihealth-production.up.railway.app/callback`
 2. Deploy credentials to Railway environment
 3. Test OAuth flow with sandbox credentials
 4. Verify FHIR resource retrieval
@@ -632,7 +632,7 @@ The sandbox uses a **test-specific authorization endpoint**:
 ### Status: ⚠️ Callback URI Configuration
 - Backend integration complete
 - Credentials deployed to Railway
-- Redirect URI added to NextGen app: `https://stripe-healthcare-production.up.railway.app/callback`
+- Redirect URI added to NextGen app: `https://verzihealth-production.up.railway.app/callback`
 - Waiting for propagation (2-3 minutes)
 - Error received: "no Route matched with those values" (indicates URI not yet propagated)
 
@@ -691,7 +691,7 @@ The sandbox uses a **test-specific authorization endpoint**:
 ### Status: ⚠️ Callback URI Configuration
 - Backend integration complete
 - Credentials deployed to Railway
-- Need to add redirect URI in sandbox portal: `https://stripe-healthcare-production.up.railway.app/callback`
+- Need to add redirect URI in sandbox portal: `https://verzihealth-production.up.railway.app/callback`
 - Error received: "Server Error (500)" (indicates URI not registered)
 - Waiting for coworker's login credentials to access sandbox portal
 
@@ -984,7 +984,7 @@ When adding a new provider, complete these steps:
 
 ### Provider Configuration
 - [ ] Register application in provider's developer portal
-- [ ] Add callback URL: `https://stripe-healthcare-production.up.railway.app/callback`
+- [ ] Add callback URL: `https://verzihealth-production.up.railway.app/callback`
 - [ ] Obtain Client ID and Client Secret
 - [ ] Obtain test credentials (if available)
 - [ ] Test OAuth flow
@@ -1083,7 +1083,7 @@ SMART_TOKEN_URL=https://launch.smarthealthit.org/v/r4/auth/token
 SMART_FHIR_BASE_URL=https://hapi.fhir.org/baseR4
 
 # Callback Configuration
-REDIRECT_URI=https://stripe-healthcare-production.up.railway.app/callback
+REDIRECT_URI=https://verzihealth-production.up.railway.app/callback
 ```
 
 ---
@@ -1183,7 +1183,7 @@ Currently focused on:
    - MUST be registered in provider's developer portal
    - MUST match exactly (no trailing slash unless specified)
    - Propagation can take 2-10 minutes
-   - Always verify format: `https://stripe-healthcare-production.up.railway.app/callback`
+   - Always verify format: `https://verzihealth-production.up.railway.app/callback`
 
 ### Common Issues and Solutions
 

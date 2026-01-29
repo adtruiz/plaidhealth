@@ -131,7 +131,7 @@ export default function AboutPage() {
                   integrations. Innovation is blocked by infrastructure complexity.
                 </p>
                 <p className="text-lg text-gray-600">
-                  We&apos;re changing that. PlaidHealth provides a single, unified API to access
+                  We&apos;re changing that. VerziHealth provides a single, unified API to access
                   patient health data from any source—EMRs, payers, labs, and more. We handle
                   the complexity of healthcare integrations so developers can focus on building
                   products that actually improve health outcomes.

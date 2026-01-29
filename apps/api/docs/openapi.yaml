@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: PlaidHealth API
+  title: VerziHealth API
   description: |
     Healthcare data aggregation API for connecting to EHR systems and payers.
 
@@ -18,10 +18,10 @@ info:
     - OAuth endpoints: 10 requests/minute
   version: 1.0.0
   contact:
-    email: support@plaidhealth.com
+    email: support@verzihealth.com
 
 servers:
-  - url: https://stripe-healthcare-production.up.railway.app
+  - url: https://verzihealth-production.up.railway.app
     description: Production server
   - url: http://localhost:3000
     description: Development server
@@ -398,4 +398,4 @@ components:
     SessionAuth:
       type: apiKey
       in: cookie
-      name: plaidhealth.sid
+      name: verzihealth.sid

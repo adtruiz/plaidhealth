@@ -1,4 +1,4 @@
-# Welcome to PlaidHealth - New Engineer Onboarding
+# Welcome to VerziHealth - New Engineer Onboarding
 
 **Your Mission:** You're the last line of defense before we demo to clients. Review everything. Question everything. Fix what needs fixing. Make this production-ready.
 
@@ -8,11 +8,11 @@
 
 ### The Vision (Read This First)
 
-PlaidHealth is **"Plaid for Healthcare"** - a B2B API platform that does for health data what Plaid did for financial data.
+VerziHealth is **"VerziHealth"** - a B2B API platform that does for health data what Plaid did for financial data.
 
 **The Problem:** Healthcare data is fragmented across thousands of EMRs (Epic, Cerner, etc.), insurance payers (Aetna, Humana, etc.), and lab systems. Each has different APIs, authentication flows, and data formats. Building healthcare apps means integrating with dozens of systems individually.
 
-**Our Solution:** One API. Developers integrate once with PlaidHealth, and we handle:
+**Our Solution:** One API. Developers integrate once with VerziHealth, and we handle:
 - OAuth flows with 50+ healthcare providers
 - FHIR R4 data normalization (consistent format regardless of source)
 - Data deduplication across providers
@@ -86,7 +86,7 @@ Creates API key → Embeds Connect Widget in their app
 **Flow 2: Patient Connection (The Core)**
 ```
 Patient clicks "Connect Health Records" in developer's app →
-PlaidHealth Connect Widget loads →
+VerziHealth Connect Widget loads →
 Patient selects provider (Epic, etc.) →
 OAuth flow with provider →
 We store encrypted access token →
@@ -379,7 +379,7 @@ As you review, think about:
 
 ## Part 10: Contact & Resources
 
-**Repository:** https://github.com/adtruiz/plaidhealth
+**Repository:** https://github.com/adtruiz/verzihealth
 
 **Key Reference Sites:**
 - FHIR R4 Spec: https://www.hl7.org/fhir/

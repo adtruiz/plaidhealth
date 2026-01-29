@@ -1,5 +1,5 @@
 /**
- * PlaidHealth API Server
+ * VerziHealth API Server
  *
  * Main Express server with modular route architecture.
  * Routes are organized in /routes directory, helpers in /lib directory.
@@ -128,7 +128,7 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  name: 'plaidhealth.sid',
+  name: 'verzihealth.sid',
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     secure: process.env.RAILWAY_ENVIRONMENT ? true : false,
@@ -746,7 +746,7 @@ async function startServer() {
   const HOST = process.env.RAILWAY_ENVIRONMENT ? '0.0.0.0' : 'localhost';
 
   server = app.listen(PORT, HOST, () => {
-    logger.info('PlaidHealth API Server Started', {
+    logger.info('VerziHealth API Server Started', {
       port: PORT,
       host: HOST,
       environment: process.env.NODE_ENV || 'development',

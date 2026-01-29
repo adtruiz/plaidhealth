@@ -207,7 +207,7 @@ export default function ApiKeysPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">API Keys</h1>
           <p className="text-muted-foreground">
-            Manage your API keys for accessing PlaidHealth services
+            Manage your API keys for accessing VerziHealth services
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -418,7 +418,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Your API Keys</CardTitle>
           <CardDescription>
-            Keys allow your applications to authenticate with PlaidHealth API
+            Keys allow your applications to authenticate with VerziHealth API
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -433,7 +433,7 @@ export default function ApiKeysPage() {
               </div>
               <h3 className="font-semibold mb-1">No API keys yet</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Create your first API key to start integrating with PlaidHealth
+                Create your first API key to start integrating with VerziHealth
               </p>
               <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />

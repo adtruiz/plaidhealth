@@ -19,10 +19,10 @@ import { cn } from '@/lib/utils'
 const sdks = [
   {
     name: 'JavaScript / TypeScript',
-    package: '@plaidhealth/sdk',
+    package: '@verzihealth/sdk',
     version: '1.2.0',
     description: 'Official SDK for Node.js and browser environments. Includes TypeScript definitions.',
-    installCommand: 'npm install @plaidhealth/sdk',
+    installCommand: 'npm install @verzihealth/sdk',
     features: [
       'Full TypeScript support',
       'Browser Connect widget',
@@ -31,8 +31,8 @@ const sdks = [
       'Request/response logging',
     ],
     links: {
-      npm: 'https://www.npmjs.com/package/@plaidhealth/sdk',
-      github: 'https://github.com/plaidhealth/plaidhealth-node',
+      npm: 'https://www.npmjs.com/package/@verzihealth/sdk',
+      github: 'https://github.com/verzihealth/verzihealth-node',
       docs: '/docs#javascript',
     },
     color: 'bg-amber-500',
@@ -41,10 +41,10 @@ const sdks = [
   },
   {
     name: 'Python',
-    package: 'plaidhealth',
+    package: 'verzihealth',
     version: '1.1.0',
     description: 'Official Python SDK with type hints and async support for Python 3.8+.',
-    installCommand: 'pip install plaidhealth',
+    installCommand: 'pip install verzihealth',
     features: [
       'Type hints (PEP 484)',
       'Async/await support',
@@ -53,8 +53,8 @@ const sdks = [
       'Comprehensive logging',
     ],
     links: {
-      pypi: 'https://pypi.org/project/plaidhealth',
-      github: 'https://github.com/plaidhealth/plaidhealth-python',
+      pypi: 'https://pypi.org/project/verzihealth',
+      github: 'https://github.com/verzihealth/verzihealth-python',
       docs: '/docs#python',
     },
     color: 'bg-blue-500',
@@ -63,10 +63,10 @@ const sdks = [
   },
   {
     name: 'Ruby',
-    package: 'plaidhealth',
+    package: 'verzihealth',
     version: '0.9.0',
     description: 'Ruby SDK for Rails and other Ruby applications. Coming soon with full feature parity.',
-    installCommand: 'gem install plaidhealth',
+    installCommand: 'gem install verzihealth',
     features: [
       'Rails integration',
       'Faraday HTTP client',
@@ -74,8 +74,8 @@ const sdks = [
       'Idiomatic Ruby API',
     ],
     links: {
-      rubygems: 'https://rubygems.org/gems/plaidhealth',
-      github: 'https://github.com/plaidhealth/plaidhealth-ruby',
+      rubygems: 'https://rubygems.org/gems/verzihealth',
+      github: 'https://github.com/verzihealth/verzihealth-ruby',
       docs: '/docs#ruby',
     },
     color: 'bg-red-500',
@@ -85,10 +85,10 @@ const sdks = [
   },
   {
     name: 'Go',
-    package: 'github.com/plaidhealth/plaidhealth-go',
+    package: 'github.com/verzihealth/verzihealth-go',
     version: '0.8.0',
     description: 'Go SDK with idiomatic error handling and context support.',
-    installCommand: 'go get github.com/plaidhealth/plaidhealth-go',
+    installCommand: 'go get github.com/verzihealth/verzihealth-go',
     features: [
       'Context support',
       'Struct-based responses',
@@ -96,7 +96,7 @@ const sdks = [
       'Minimal dependencies',
     ],
     links: {
-      github: 'https://github.com/plaidhealth/plaidhealth-go',
+      github: 'https://github.com/verzihealth/verzihealth-go',
       docs: '/docs#go',
     },
     color: 'bg-cyan-500',
@@ -107,9 +107,9 @@ const sdks = [
 ]
 
 const codeExamples = {
-  javascript: `import { PlaidHealth } from '@plaidhealth/sdk';
+  javascript: `import { VerziHealth } from '@verzihealth/sdk';
 
-const client = new PlaidHealth({
+const client = new VerziHealth({
   apiKey: process.env.PLAIDHEALTH_API_KEY,
 });
 
@@ -121,9 +121,9 @@ const link = await client.connections.createLinkToken({
   patientId: 'patient_123',
   redirectUri: 'https://app.com/callback',
 });`,
-  python: `from plaidhealth import PlaidHealth
+  python: `from verzihealth import VerziHealth
 
-client = PlaidHealth(api_key=os.environ['PLAIDHEALTH_API_KEY'])
+client = VerziHealth(api_key=os.environ['PLAIDHEALTH_API_KEY'])
 
 # Fetch patient records
 records = client.patients.get_records('patient_123')
@@ -142,7 +142,7 @@ export default function SDKsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">SDKs & Libraries</h1>
         <p className="text-muted-foreground mt-2">
-          Official PlaidHealth SDKs to help you integrate faster. All SDKs are
+          Official VerziHealth SDKs to help you integrate faster. All SDKs are
           open-source and actively maintained.
         </p>
       </div>
@@ -295,11 +295,11 @@ export default function SDKsPage() {
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             All our SDKs are wrappers around our REST API. You can integrate with
-            PlaidHealth using any HTTP client in any programming language.
+            VerziHealth using any HTTP client in any programming language.
           </p>
 
           <CodeBlock
-            code={`curl -X GET "https://api.plaidhealth.com/v1/patients/patient_123/records" \\
+            code={`curl -X GET "https://api.verzihealth.com/v1/patients/patient_123/records" \\
   -H "Authorization: Bearer pfh_live_your_api_key" \\
   -H "Content-Type: application/json"`}
             language="bash"
@@ -352,7 +352,7 @@ export default function SDKsPage() {
           </div>
           <Button asChild>
             <a
-              href="https://github.com/plaidhealth/community/discussions"
+              href="https://github.com/verzihealth/community/discussions"
               target="_blank"
               rel="noopener noreferrer"
             >

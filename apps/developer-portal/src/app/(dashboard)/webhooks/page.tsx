@@ -60,7 +60,7 @@ interface WebhookDelivery {
 const mockEndpoints: WebhookEndpoint[] = [
   {
     id: 'wh_001',
-    url: 'https://api.yourapp.com/webhooks/plaidhealth',
+    url: 'https://api.yourapp.com/webhooks/verzihealth',
     events: ['patient.connected', 'patient.disconnected', 'data.updated'],
     status: 'active',
     createdAt: '2024-01-10',

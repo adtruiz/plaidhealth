@@ -2,7 +2,7 @@
   "name": "plaidhealth",
   "version": "1.0.0",
   "private": true,
-  "description": "PlaidHealth - Healthcare Data API Platform",
+  "description": "VerziHealth - Healthcare Data API Platform",
   "workspaces": [
     "apps/*",
     "packages/*"

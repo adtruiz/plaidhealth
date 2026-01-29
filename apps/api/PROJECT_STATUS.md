@@ -1,15 +1,15 @@
-# PlaidHealth - Project Status
+# VerziHealth - Project Status
 
 **Last Updated:** January 4, 2026
 
 ## Project Overview
 
-PlaidHealth is a B2B API platform ("Plaid for Healthcare") that aggregates patient health data from EMRs and insurance payers via FHIR APIs, providing developers with a unified interface to access health records.
+VerziHealth is a B2B API platform ("VerziHealth") that aggregates patient health data from EMRs and insurance payers via FHIR APIs, providing developers with a unified interface to access health records.
 
 ## Architecture
 
 ```
-plaidhealth/
+verzihealth/
 ├── apps/
 │   ├── api/                 # Core FHIR API (Express.js, PostgreSQL, Redis)
 │   ├── developer-portal/    # Developer dashboard (Next.js 14)
@@ -119,7 +119,7 @@ plaidhealth/
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Node.js API | **Deployed** | stripe-healthcare-production.up.railway.app |
+| Node.js API | **Deployed** | verzihealth-production.up.railway.app |
 | PostgreSQL | **Running** | Session, users, connections, audit logs |
 | Redis | Configured | Caching, rate limiting |
 
@@ -307,4 +307,4 @@ railway variables
 
 - **GitHub:** https://github.com/adtruiz/willow-and-co
 - **Primary Branch:** main
-- **Production URL:** https://stripe-healthcare-production.up.railway.app/
+- **Production URL:** https://verzihealth-production.up.railway.app/

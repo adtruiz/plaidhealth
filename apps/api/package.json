@@ -1,7 +1,7 @@
 {
   "name": "@plaidhealth/api",
   "version": "1.0.0",
-  "description": "FHIR integration API for Plaid for Healthcare",
+  "description": "FHIR integration API for VerziHealth",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

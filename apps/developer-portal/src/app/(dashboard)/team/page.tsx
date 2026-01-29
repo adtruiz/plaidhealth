@@ -47,7 +47,7 @@ interface TeamMember {
 }
 
 const mockTeamMembers: TeamMember[] = [
-  { id: '1', name: 'You', email: 'demo@plaidhealth.com', role: 'owner', status: 'active', joinedAt: '2024-01-01' },
+  { id: '1', name: 'You', email: 'demo@verzihealth.com', role: 'owner', status: 'active', joinedAt: '2024-01-01' },
   { id: '2', name: 'Sarah Chen', email: 'sarah@yourcompany.com', role: 'admin', status: 'active', joinedAt: '2024-01-05' },
   { id: '3', name: 'Marcus Johnson', email: 'marcus@yourcompany.com', role: 'developer', status: 'active', joinedAt: '2024-01-10' },
   { id: '4', name: 'Pending Invite', email: 'newdev@yourcompany.com', role: 'developer', status: 'pending', joinedAt: '2024-01-15' },
@@ -112,7 +112,7 @@ export default function TeamPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Team</h1>
           <p className="text-muted-foreground">
-            Manage who has access to your PlaidHealth dashboard
+            Manage who has access to your VerziHealth dashboard
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -67,7 +67,7 @@ async function deliverWebhook(url, payload, secret) {
         'Content-Type': 'application/json',
         'X-Webhook-Signature': `v1=${signature}`,
         'X-Webhook-Timestamp': timestamp.toString(),
-        'User-Agent': 'PlaidForHealthcare-Webhook/1.0'
+        'User-Agent': 'VerziHealth-Webhook/1.0'
       },
       body: JSON.stringify(payload),
       signal: controller.signal
@@ -222,7 +222,7 @@ async function sendTestEvent(userId, webhookId) {
     type: EVENT_TYPES.TEST,
     created: new Date().toISOString(),
     data: {
-      message: 'This is a test webhook from Plaid for Healthcare',
+      message: 'This is a test webhook from VerziHealth',
       webhook_id: webhookId
     }
   };

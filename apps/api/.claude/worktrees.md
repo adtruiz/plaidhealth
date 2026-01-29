@@ -6,10 +6,10 @@ Use git worktrees to enable parallel development across multiple features/agents
 
 ```bash
 # Create worktrees for parallel development
-git worktree add ../plaidhealth-fhir feature/fhir-enhancements
-git worktree add ../plaidhealth-oauth feature/oauth-improvements
-git worktree add ../plaidhealth-widget feature/widget-updates
-git worktree add ../plaidhealth-hotfix hotfix/current
+git worktree add ../verzihealth-fhir feature/fhir-enhancements
+git worktree add ../verzihealth-oauth feature/oauth-improvements
+git worktree add ../verzihealth-widget feature/widget-updates
+git worktree add ../verzihealth-hotfix hotfix/current
 ```
 
 ## Directory Structure
@@ -17,10 +17,10 @@ git worktree add ../plaidhealth-hotfix hotfix/current
 ```
 plaid-for-healthcare/
 ├── apps/api/apps/api/          # Main development (main branch)
-├── plaidhealth-fhir/           # FHIR feature work
-├── plaidhealth-oauth/          # OAuth feature work
-├── plaidhealth-widget/         # Widget feature work
-└── plaidhealth-hotfix/         # Emergency fixes
+├── verzihealth-fhir/           # FHIR feature work
+├── verzihealth-oauth/          # OAuth feature work
+├── verzihealth-widget/         # Widget feature work
+└── verzihealth-hotfix/         # Emergency fixes
 ```
 
 ## Worktree Management
@@ -30,7 +30,7 @@ plaid-for-healthcare/
 git worktree list
 
 # Remove a worktree when done
-git worktree remove ../plaidhealth-fhir
+git worktree remove ../verzihealth-fhir
 
 # Prune stale worktree references
 git worktree prune
@@ -47,11 +47,11 @@ git worktree prune
 
 | Agent | Default Worktree | Branch Pattern |
 |-------|-----------------|----------------|
-| FHIR Agent | plaidhealth-fhir | feature/fhir-* |
-| OAuth Agent | plaidhealth-oauth | feature/oauth-* |
-| Widget Agent | plaidhealth-widget | feature/widget-* |
+| FHIR Agent | verzihealth-fhir | feature/fhir-* |
+| OAuth Agent | verzihealth-oauth | feature/oauth-* |
+| Widget Agent | verzihealth-widget | feature/widget-* |
 | Database Agent | (main) | feature/db-* |
-| Infra Agent | plaidhealth-hotfix | hotfix/* |
+| Infra Agent | verzihealth-hotfix | hotfix/* |
 
 ## Parallel Development Workflow
 

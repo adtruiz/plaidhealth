@@ -1,4 +1,4 @@
-# PlaidHealth Developer Portal
+# VerziHealth Developer Portal
 
 Developer dashboard for managing API integrations, monitoring usage, and accessing documentation.
 

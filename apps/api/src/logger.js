@@ -12,7 +12,7 @@ const logger = winston.createLogger({
     winston.format.splat(),
     winston.format.json()
   ),
-  defaultMeta: { service: 'stripe-healthcare' },
+  defaultMeta: { service: 'verzihealth' },
   transports: [
     // Console transport with colorized output for development
     new winston.transports.Console({
@@ -20,7 +20,7 @@ const logger = winston.createLogger({
         winston.format.colorize(),
         winston.format.printf(({ timestamp, level, message, ...meta }) => {
           let log = `${timestamp} [${level}]: ${message}`;
-          if (Object.keys(meta).length > 0 && meta.service !== 'stripe-healthcare') {
+          if (Object.keys(meta).length > 0 && meta.service !== 'verzihealth') {
             log += ` ${JSON.stringify(meta)}`;
           }
           return log;

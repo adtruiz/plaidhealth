@@ -237,7 +237,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-lg">Quick Actions</CardTitle>
             <CardDescription>
-              Common tasks to help you get the most out of PlaidHealth
+              Common tasks to help you get the most out of VerziHealth
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -322,13 +322,13 @@ export default function DashboardPage() {
             <div>
               <h3 className="font-medium">All Systems Operational</h3>
               <p className="text-sm text-muted-foreground">
-                PlaidHealth API is running smoothly
+                VerziHealth API is running smoothly
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" asChild>
             <a
-              href="https://status.plaidhealth.com"
+              href="https://status.verzihealth.com"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -424,7 +424,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              Get Started with PlaidHealth
+              Get Started with VerziHealth
             </CardTitle>
             <CardDescription>
               Follow these steps to start integrating healthcare data into your application
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                 <div>
                   <h4 className="font-medium">Install the SDK</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add PlaidHealth to your project with npm or pip
+                    Add VerziHealth to your project with npm or pip
                   </p>
                 </div>
               </div>

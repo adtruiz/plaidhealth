@@ -1,7 +1,7 @@
 {
   "name": "@plaidhealth/marketing-site",
   "version": "0.1.0",
-  "description": "Marketing website for PlaidHealth",
+  "description": "Marketing website for VerziHealth",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3002",

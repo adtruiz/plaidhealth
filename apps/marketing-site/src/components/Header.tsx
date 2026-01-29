@@ -77,7 +77,7 @@ export default function Header() {
                 <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <span className="text-xl font-bold text-slate-900">
-                Plaid<span className="text-primary-600">Health</span>
+                Verzi<span className="text-primary-600">Health</span>
               </span>
             </Link>
           </div>

@@ -1,5 +1,5 @@
 /**
- * Plaid for Healthcare - Data Normalization Layer
+ * VerziHealth - Data Normalization Layer
  *
  * Transforms raw FHIR data from various EMRs/payers into a consistent,
  * developer-friendly format. This is the core value proposition.

@@ -5,9 +5,9 @@ import Button from '@/components/Button'
 import AnimatedSection, { AnimatedCard } from '@/components/AnimatedSection'
 
 const featuredPost = {
-  slug: 'introducing-plaidhealth-api-v2',
-  title: 'Introducing PlaidHealth API v2: Faster, More Reliable, More Data',
-  excerpt: 'Today we\'re announcing the general availability of PlaidHealth API v2, featuring 50% faster response times, expanded data coverage, and new real-time sync capabilities.',
+  slug: 'introducing-verzihealth-api-v2',
+  title: 'Introducing VerziHealth API v2: Faster, More Reliable, More Data',
+  excerpt: 'Today we\'re announcing the general availability of VerziHealth API v2, featuring 50% faster response times, expanded data coverage, and new real-time sync capabilities.',
   date: '2024-01-15',
   readTime: '5 min read',
   category: 'Product',
@@ -33,7 +33,7 @@ const posts = [
   {
     slug: 'fhir-r4-explained',
     title: 'FHIR R4 Explained: A Practical Introduction',
-    excerpt: 'FHIR is the modern standard for healthcare data exchange. Learn what it is, why it matters, and how PlaidHealth uses it to normalize health data.',
+    excerpt: 'FHIR is the modern standard for healthcare data exchange. Learn what it is, why it matters, and how VerziHealth uses it to normalize health data.',
     date: '2024-01-05',
     readTime: '10 min read',
     category: 'Engineering',
@@ -56,8 +56,8 @@ const posts = [
   },
   {
     slug: 'building-medication-tracking-app',
-    title: 'Tutorial: Building a Medication Tracking App with PlaidHealth',
-    excerpt: 'A step-by-step guide to building a medication management application using the PlaidHealth API, from setup to deployment.',
+    title: 'Tutorial: Building a Medication Tracking App with VerziHealth',
+    excerpt: 'A step-by-step guide to building a medication management application using the VerziHealth API, from setup to deployment.',
     date: '2023-12-20',
     readTime: '15 min read',
     category: 'Tutorial',

@@ -40,7 +40,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Activity className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">PlaidHealth</span>
+            <span className="text-2xl font-bold">VerziHealth</span>
           </div>
           <CardTitle className="text-2xl">Developer Portal</CardTitle>
           <CardDescription>

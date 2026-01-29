@@ -147,7 +147,7 @@ export default function UseCasesPage() {
               Built for healthcare innovators
             </h1>
             <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-              From startups to enterprises, teams across healthcare use PlaidHealth
+              From startups to enterprises, teams across healthcare use VerziHealth
               to build better products and improve patient outcomes.
             </p>
           </AnimatedSection>
@@ -231,7 +231,7 @@ export default function UseCasesPage() {
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto mb-8">
               We work with teams across the healthcare ecosystem.
-              Get in touch to discuss how PlaidHealth can support your specific needs.
+              Get in touch to discuss how VerziHealth can support your specific needs.
             </p>
             <Button href="/contact" size="lg">
               Talk to Our Team

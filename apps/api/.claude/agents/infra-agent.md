@@ -24,7 +24,7 @@ Specialization: Deployment, monitoring, and DevOps
 - **Platform**: Railway (auto-deploy from main)
 - **Database**: Railway PostgreSQL
 - **Cache**: Railway Redis
-- **Domain**: stripe-healthcare-production.up.railway.app
+- **Domain**: verzihealth-production.up.railway.app
 
 ## Health Endpoints
 - `GET /health` - Basic liveness check

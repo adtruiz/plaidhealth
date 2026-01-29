@@ -1,7 +1,7 @@
-# PlaidHealth Design System
+# VerziHealth Design System
 
 ## Brand Identity
-PlaidHealth is the "Plaid for Healthcare" - a B2B API platform for accessing patient health records. The design should convey trust, security, and modern technology.
+VerziHealth is the "VerziHealth" - a B2B API platform for accessing patient health records. The design should convey trust, security, and modern technology.
 
 ## Color Palette
 

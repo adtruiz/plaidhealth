@@ -1,4 +1,4 @@
-# Plaid for Healthcare - FHIR Integration Platform
+# VerziHealth - FHIR Integration Platform
 
 A production-ready platform for aggregating patient health data from multiple EHR systems and insurance providers using SMART on FHIR standards.
 
@@ -394,4 +394,4 @@ Proprietary - All rights reserved
 
 **Questions?** Read the tutorial in `docs/FHIR_TUTORIAL.md` or check Epic's documentation.
 
-**Ready to build?** This prototype is your foundation. Now scale it into the full "Plaid for Healthcare" platform! 🚀
+**Ready to build?** This prototype is your foundation. Now scale it into the full "VerziHealth" platform! 🚀

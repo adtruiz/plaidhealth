@@ -8,17 +8,17 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: 'PlaidHealth Developer Portal',
-    template: '%s | PlaidHealth Portal',
+    default: 'VerziHealth Developer Portal',
+    template: '%s | VerziHealth Portal',
   },
-  description: 'Build healthcare integrations with the PlaidHealth API. Access documentation, manage API keys, and monitor usage.',
+  description: 'Build healthcare integrations with the VerziHealth API. Access documentation, manage API keys, and monitor usage.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://dashboard.plaidhealth.com',
-    siteName: 'PlaidHealth Developer Portal',
-    title: 'PlaidHealth Developer Portal',
-    description: 'Build healthcare integrations with the PlaidHealth API. Access documentation, manage API keys, and monitor usage.',
+    url: 'https://dashboard.verzihealth.com',
+    siteName: 'VerziHealth Developer Portal',
+    title: 'VerziHealth Developer Portal',
+    description: 'Build healthcare integrations with the VerziHealth API. Access documentation, manage API keys, and monitor usage.',
   },
   robots: {
     index: false,

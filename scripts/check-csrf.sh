@@ -7,7 +7,7 @@ CONNECTION_ID="${3:-0}"
 
 if [[ -z "${SESSION_COOKIE}" ]]; then
   echo "Usage: $0 <base_url> <session_cookie_value> [connection_id]"
-  echo "Example: $0 https://your-api.example.com 'plaidhealth.sid=...' 0"
+  echo "Example: $0 https://your-api.example.com 'verzihealth.sid=...' 0"
   exit 1
 fi
 

@@ -1,5 +1,5 @@
 /**
- * PlaidHealth API Client
+ * VerziHealth API Client
  * Handles all communication with the backend API
  */
 
@@ -16,7 +16,7 @@ class ApiClient {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('plaidhealth_token');
+      this.token = localStorage.getItem('verzihealth_token');
     }
   }
 
@@ -24,9 +24,9 @@ class ApiClient {
     this.token = token;
     if (typeof window !== 'undefined') {
       if (token) {
-        localStorage.setItem('plaidhealth_token', token);
+        localStorage.setItem('verzihealth_token', token);
       } else {
-        localStorage.removeItem('plaidhealth_token');
+        localStorage.removeItem('verzihealth_token');
       }
     }
   }

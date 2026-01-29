@@ -9,7 +9,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: builder  # Use builder stage with dev dependencies
-    container_name: plaidhealth-api-dev
+    container_name: verzihealth-api-dev
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
@@ -21,7 +21,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DATABASE_URL=postgresql://plaidhealth:devpassword@postgres:5432/plaidhealth
+      - DATABASE_URL=postgresql://verzihealth:devpassword@postgres:5432/verzihealth
       - REDIS_URL=redis://redis:6379
       - SESSION_SECRET=dev-session-secret-change-in-production
       - ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -42,32 +42,32 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - plaidhealth-dev
+      - verzihealth-dev
 
   postgres:
     image: postgres:16-alpine
-    container_name: plaidhealth-postgres-dev
+    container_name: verzihealth-postgres-dev
     restart: unless-stopped
     ports:
       - "5432:5432"  # Expose for local tools
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=plaidhealth
+      - POSTGRES_USER=verzihealth
       - POSTGRES_PASSWORD=devpassword
-      - POSTGRES_DB=plaidhealth
+      - POSTGRES_DB=verzihealth
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U plaidhealth -d plaidhealth"]
+      test: ["CMD-SHELL", "pg_isready -U verzihealth -d verzihealth"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 5s
     networks:
-      - plaidhealth-dev
+      - verzihealth-dev
 
   redis:
     image: redis:7-alpine
-    container_name: plaidhealth-redis-dev
+    container_name: verzihealth-redis-dev
     restart: unless-stopped
     ports:
       - "6379:6379"  # Expose for local tools
@@ -81,12 +81,12 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      - plaidhealth-dev
+      - verzihealth-dev
 
   # Redis Commander - Web UI for Redis debugging
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: plaidhealth-redis-ui
+    container_name: verzihealth-redis-ui
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -95,7 +95,7 @@ services:
     depends_on:
       - redis
     networks:
-      - plaidhealth-dev
+      - verzihealth-dev
     profiles:
       - tools  # Only start with: docker compose --profile tools up
 
@@ -106,5 +106,5 @@ volumes:
     driver: local
 
 networks:
-  plaidhealth-dev:
+  verzihealth-dev:
     driver: bridge

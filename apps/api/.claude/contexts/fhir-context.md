@@ -1,6 +1,6 @@
 # FHIR Agent Context
 
-Quick reference for FHIR-related work in PlaidHealth.
+Quick reference for FHIR-related work in VerziHealth.
 
 ## Architecture Overview
 
