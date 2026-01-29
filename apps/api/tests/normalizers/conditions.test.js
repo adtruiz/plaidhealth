@@ -8,20 +8,26 @@ jest.mock('../../src/mappings/icd10.json', () => ({
   'J06.9': { name: 'Acute upper respiratory infection' }
 }));
 
+// Mock the code-lookup module
+jest.mock('../../src/code-lookup', () => ({
+  lookupSNOMED: jest.fn()
+}));
+
 const normalizeConditions = require('../../src/normalizers/conditions');
+const { normalizeConditionsSync } = require('../../src/normalizers/conditions');
 
 describe('Conditions Normalizer', () => {
-  describe('normalizeConditions', () => {
+  describe('normalizeConditionsSync', () => {
     it('should return empty array for null input', () => {
-      expect(normalizeConditions(null, 'epic')).toEqual([]);
+      expect(normalizeConditionsSync(null, 'epic')).toEqual([]);
     });
 
     it('should return empty array for undefined input', () => {
-      expect(normalizeConditions(undefined, 'epic')).toEqual([]);
+      expect(normalizeConditionsSync(undefined, 'epic')).toEqual([]);
     });
 
     it('should return empty array for empty array', () => {
-      expect(normalizeConditions([], 'epic')).toEqual([]);
+      expect(normalizeConditionsSync([], 'epic')).toEqual([]);
     });
 
     it('should normalize basic condition with text name', () => {
@@ -43,7 +49,7 @@ describe('Conditions Normalizer', () => {
         recordedDate: '2023-06-15'
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('condition-123');
@@ -68,7 +74,7 @@ describe('Conditions Normalizer', () => {
         }
       }];
 
-      const result = normalizeConditions(conditions, 'cerner');
+      const result = normalizeConditionsSync(conditions, 'cerner');
 
       expect(result[0].name).toBe('Diabetes mellitus');
     });
@@ -85,7 +91,7 @@ describe('Conditions Normalizer', () => {
         }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].code).toBe('E11.9');
       expect(result[0].codeSystem).toBe('ICD-10');
@@ -103,7 +109,7 @@ describe('Conditions Normalizer', () => {
         }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].code).toBe('999999999');
       expect(result[0].codeSystem).toBe('SNOMED');
@@ -129,7 +135,7 @@ describe('Conditions Normalizer', () => {
           }
         }];
 
-        const result = normalizeConditions(conditions, 'epic');
+        const result = normalizeConditionsSync(conditions, 'epic');
         expect(result[0].clinicalStatus).toBe(expected);
       });
     });
@@ -153,7 +159,7 @@ describe('Conditions Normalizer', () => {
           }
         }];
 
-        const result = normalizeConditions(conditions, 'epic');
+        const result = normalizeConditionsSync(conditions, 'epic');
         expect(result[0].verificationStatus).toBe(expected);
       });
     });
@@ -165,7 +171,7 @@ describe('Conditions Normalizer', () => {
         onsetDateTime: '2022-01-15T10:30:00Z'
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].onsetDate).toBe('2022-01-15T10:30:00Z');
     });
@@ -180,7 +186,7 @@ describe('Conditions Normalizer', () => {
         }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].onsetDate).toBe('2022-01-01');
     });
@@ -192,7 +198,7 @@ describe('Conditions Normalizer', () => {
         onsetAge: { value: 45, unit: 'years' }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].onsetDate).toBe('Age 45');
     });
@@ -204,7 +210,7 @@ describe('Conditions Normalizer', () => {
         onsetString: 'Childhood'
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].onsetDate).toBe('Childhood');
     });
@@ -225,7 +231,7 @@ describe('Conditions Normalizer', () => {
           }]
         }];
 
-        const result = normalizeConditions(conditions, 'epic');
+        const result = normalizeConditionsSync(conditions, 'epic');
         expect(result[0].category).toBe(expected);
       });
     });
@@ -242,7 +248,7 @@ describe('Conditions Normalizer', () => {
         }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].severity).toEqual({
         code: '24484000',
@@ -256,7 +262,7 @@ describe('Conditions Normalizer', () => {
         code: { text: 'Test' }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].severity).toBeNull();
     });
@@ -266,7 +272,7 @@ describe('Conditions Normalizer', () => {
         id: 'condition-123'
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0].name).toBe('Unknown Condition');
       expect(result[0].code).toBeNull();
@@ -279,7 +285,7 @@ describe('Conditions Normalizer', () => {
         meta: { versionId: '1' }
       }];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result[0]._raw).toEqual(conditions[0]);
     });
@@ -291,12 +297,37 @@ describe('Conditions Normalizer', () => {
         { id: 'cond-3', code: { text: 'Asthma' } }
       ];
 
-      const result = normalizeConditions(conditions, 'epic');
+      const result = normalizeConditionsSync(conditions, 'epic');
 
       expect(result).toHaveLength(3);
       expect(result[0].name).toBe('Hypertension');
       expect(result[1].name).toBe('Diabetes');
       expect(result[2].name).toBe('Asthma');
+    });
+  });
+
+  describe('normalizeConditions (async)', () => {
+    it('should return empty array for empty input', async () => {
+      const result = await normalizeConditions([], 'epic');
+      expect(result).toEqual([]);
+    });
+
+    it('should normalize conditions asynchronously', async () => {
+      const conditions = [{
+        id: 'condition-123',
+        code: {
+          text: 'Test Condition',
+          coding: [{
+            system: 'http://hl7.org/fhir/sid/icd-10-cm',
+            code: 'E11.9'
+          }]
+        }
+      }];
+
+      const result = await normalizeConditions(conditions, 'epic');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Test Condition');
     });
   });
 });

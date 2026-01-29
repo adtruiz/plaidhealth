@@ -3,9 +3,11 @@
  *
  * Transforms FHIR Condition resources into consistent format.
  * Maps various code systems to ICD-10 where possible.
+ * Uses SNOMED API lookup for enriched tier.
  */
 
 const icd10Mappings = require('../mappings/icd10.json');
+const { lookupSNOMED } = require('../code-lookup');
 
 /**
  * Extract condition name
@@ -134,9 +136,51 @@ function extractSeverity(condition) {
  * Main normalizer function
  * @param {Array} conditions - Array of raw FHIR Condition resources
  * @param {string} provider - Source provider
- * @returns {Array} Normalized conditions
+ * @param {Object} options - Options { enableApiLookup: boolean }
+ * @returns {Promise<Array>} Normalized conditions
  */
-function normalizeConditions(conditions, provider) {
+async function normalizeConditions(conditions, provider, options = {}) {
+  const { enableApiLookup = true } = options;
+
+  if (!conditions?.length) return [];
+
+  const results = await Promise.all(conditions.map(async (cond) => {
+    const { code, system } = extractIcd10Code(cond);
+
+    // Try SNOMED API lookup for enriched tier
+    let snomedLookup = null;
+    if (enableApiLookup && system === 'SNOMED') {
+      try {
+        snomedLookup = await lookupSNOMED(code);
+      } catch (e) {
+        // Silently fail API lookups
+      }
+    }
+
+    return {
+      id: cond.id || null,
+      name: snomedLookup?.name || extractConditionName(cond),
+      code,
+      codeSystem: system,
+      clinicalStatus: normalizeClinicalStatus(cond),
+      verificationStatus: normalizeVerificationStatus(cond),
+      category: extractCategory(cond),
+      severity: extractSeverity(cond),
+      onsetDate: extractOnsetDate(cond),
+      recordedDate: cond.recordedDate || null,
+      source: provider,
+      _enriched: !!snomedLookup,
+      _raw: cond
+    };
+  }));
+
+  return results;
+}
+
+/**
+ * Synchronous version for backwards compatibility (no API lookups)
+ */
+function normalizeConditionsSync(conditions, provider) {
   if (!conditions?.length) return [];
 
   return conditions.map(cond => {
@@ -154,9 +198,11 @@ function normalizeConditions(conditions, provider) {
       onsetDate: extractOnsetDate(cond),
       recordedDate: cond.recordedDate || null,
       source: provider,
+      _enriched: false,
       _raw: cond
     };
   });
 }
 
 module.exports = normalizeConditions;
+module.exports.normalizeConditionsSync = normalizeConditionsSync;

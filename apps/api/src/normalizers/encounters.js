@@ -142,7 +142,14 @@ function extractServiceProvider(encounter) {
  * @param {string} provider - Source provider
  * @returns {Array} Normalized encounters
  */
-function normalizeEncounters(encounters, provider) {
+/**
+ * Main normalizer function
+ * @param {Array} encounters - Array of raw FHIR Encounter resources
+ * @param {string} provider - Source provider
+ * @param {Object} options - Options { enableApiLookup: boolean } (unused for encounters)
+ * @returns {Array} Normalized encounters
+ */
+function normalizeEncounters(encounters, provider, options = {}) {
   if (!encounters?.length) return [];
 
   return encounters.map(enc => {

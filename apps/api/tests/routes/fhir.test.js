@@ -26,7 +26,7 @@ jest.mock('../../src/normalizers', () => ({
   normalizePatient: jest.fn(p => ({ id: p?.id, firstName: 'Test', lastName: 'User' })),
   normalizeLabs: jest.fn(async () => []),
   normalizeMedications: jest.fn(async () => []),
-  normalizeConditions: jest.fn(() => []),
+  normalizeConditions: jest.fn(async () => []),
   normalizeEncounters: jest.fn(() => [])
 }));
 
@@ -48,8 +48,12 @@ jest.mock('../../src/chart-helpers', () => ({
 jest.mock('../../src/middleware/auth', () => ({
   authenticate: jest.fn(() => (req, res, next) => {
     req.user = { id: 'user-123', email: 'test@example.com', name: 'Test User' };
+    req.authMethod = 'session';
     next();
-  })
+  }),
+  isEnrichmentEnabled: jest.fn(() => true),
+  isDeduplicationEnabled: jest.fn(() => true),
+  getDataTier: jest.fn(() => 'enriched')
 }));
 
 jest.mock('axios');

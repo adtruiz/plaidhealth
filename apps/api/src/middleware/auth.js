@@ -160,9 +160,59 @@ function requireSession(req, res, next) {
   });
 }
 
+/**
+ * Check if enrichment is enabled for this request
+ * Enrichment is enabled if:
+ * 1. Query param ?enrich=true is present, OR
+ * 2. API key has 'enrich' scope, OR
+ * 3. Session auth (full access)
+ */
+function isEnrichmentEnabled(req) {
+  // Query param override
+  if (req.query.enrich === 'true') {
+    return true;
+  }
+
+  // Session auth gets enrichment by default
+  if (req.authMethod === 'session') {
+    return true;
+  }
+
+  // Check API key scope
+  if (req.apiKeyScopes?.includes('enrich') || req.apiKeyScopes?.includes('admin')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if deduplication is enabled for this request
+ *
+ * Currently follows the same rules as enrichment since deduplication is
+ * a premium feature. In the future, these could be separated if we want
+ * to offer deduplication as a separate scope (e.g., 'dedupe' scope).
+ */
+function isDeduplicationEnabled(req) {
+  // For now, dedup and enrichment are bundled together
+  // To separate: add check for req.apiKeyScopes?.includes('dedupe')
+  return isEnrichmentEnabled(req);
+}
+
+/**
+ * Get the data tier for this request
+ * Returns 'enriched' or 'basic'
+ */
+function getDataTier(req) {
+  return isEnrichmentEnabled(req) ? 'enriched' : 'basic';
+}
+
 module.exports = {
   authenticate,
   requireScopes,
   requireSession,
-  extractApiKey
+  extractApiKey,
+  isEnrichmentEnabled,
+  isDeduplicationEnabled,
+  getDataTier
 };

@@ -11,7 +11,7 @@
 const express = require('express');
 const axios = require('axios');
 const { epicDb, auditDb } = require('../db');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, isEnrichmentEnabled, isDeduplicationEnabled, getDataTier } = require('../middleware/auth');
 const logger = require('../logger');
 const { recordFhirCall } = require('../monitoring');
 const { getFhirBaseUrl, getProviderDisplayName } = require('../lib/providers');
@@ -287,16 +287,27 @@ router.get('/health-records/unified', requireLogin, async (req, res) => {
 /**
  * GET /api/v1/health-records
  * Get all normalized health data
+ *
+ * Tier support:
+ * - Basic: Normalized data with local code lookups only
+ * - Enriched: + API code lookups, drug classes, deduplication
+ *
+ * Enable enrichment via:
+ * - Query param: ?enrich=true
+ * - API key scope: 'enrich'
  */
 router.get('/v1/health-records', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
     const includeRaw = req.query.include_raw === 'true';
+    const tier = getDataTier(req);
+    const enrich = isEnrichmentEnabled(req);
+    const dedupe = isDeduplicationEnabled(req);
 
     if (!connections || connections.length === 0) {
       return res.json({
         data: { patient: null, labs: [], medications: [], conditions: [], encounters: [] },
-        meta: { sources: [], normalizedAt: new Date().toISOString(), version: '1.0.0' }
+        meta: { sources: [], normalizedAt: new Date().toISOString(), version: '1.0.0', tier }
       });
     }
 
@@ -313,10 +324,11 @@ router.get('/v1/health-records', authenticate(['read']), async (req, res) => {
           allData.patients.push(normalized);
         }
 
-        const normalizedLabs = normalizeLabs(rawData.observations, provider);
-        const normalizedMeds = normalizeMedications(rawData.medications, provider);
-        const normalizedConditions = normalizeConditions(rawData.conditions, provider);
-        const normalizedEncounters = normalizeEncounters(rawData.encounters, provider);
+        // Pass enrichment flag to normalizers (enables API lookups for enriched tier)
+        const normalizedLabs = await normalizeLabs(rawData.observations, provider, { enableApiLookup: enrich });
+        const normalizedMeds = await normalizeMedications(rawData.medications, provider, { enableApiLookup: enrich });
+        const normalizedConditions = await normalizeConditions(rawData.conditions, provider, { enableApiLookup: enrich });
+        const normalizedEncounters = normalizeEncounters(rawData.encounters, provider, { enableApiLookup: enrich });
 
         if (!includeRaw) {
           normalizedLabs.forEach(l => delete l._raw);
@@ -339,14 +351,25 @@ router.get('/v1/health-records', authenticate(['read']), async (req, res) => {
     allData.medications.sort((a, b) => new Date(b.prescribedDate) - new Date(a.prescribedDate));
     allData.encounters.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
+    // Apply deduplication only for enriched tier with multiple connections
+    let deduplicated = null;
+    if (dedupe && connections.length > 1) {
+      deduplicated = {
+        medications: deduplicateMedications(allData.medications),
+        conditions: deduplicateConditions(allData.conditions),
+        labs: deduplicateLabs(allData.labs),
+        encounters: deduplicateEncounters(allData.encounters)
+      };
+    }
+
     res.json({
       data: {
         patient: allData.patients[0] || null,
         patients: allData.patients,
-        labs: allData.labs,
-        medications: allData.medications,
-        conditions: allData.conditions,
-        encounters: allData.encounters
+        labs: deduplicated?.labs?.map(d => d.merged) || allData.labs,
+        medications: deduplicated?.medications?.map(d => d.merged) || allData.medications,
+        conditions: deduplicated?.conditions?.map(d => d.merged) || allData.conditions,
+        encounters: deduplicated?.encounters?.map(d => d.merged) || allData.encounters
       },
       meta: {
         sources: connections.map(c => ({
@@ -361,6 +384,9 @@ router.get('/v1/health-records', authenticate(['read']), async (req, res) => {
           conditions: allData.conditions.length,
           encounters: allData.encounters.length
         },
+        tier,
+        enriched: enrich,
+        deduplicated: dedupe && connections.length > 1,
         normalizedAt: new Date().toISOString(),
         version: '1.0.0'
       }
@@ -413,16 +439,22 @@ router.get('/v1/patient', authenticate(['read']), async (req, res) => {
 /**
  * GET /api/v1/labs
  * Get normalized labs with optional deduplication
+ *
+ * Tier support:
+ * - Basic: Normalized data, local LOINC lookups
+ * - Enriched: + API LOINC lookups, categories, deduplication
  */
 router.get('/v1/labs', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const deduplicate = req.query.deduplicate !== 'false';
+    const tier = getDataTier(req);
+    const enrich = isEnrichmentEnabled(req);
+    const dedupe = isDeduplicationEnabled(req) && req.query.deduplicate !== 'false';
     const includeOriginals = req.query.include_originals === 'true';
     const limit = parseInt(req.query.limit) || 100;
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false, tier } });
     }
 
     const allLabs = [];
@@ -434,7 +466,7 @@ router.get('/v1/labs', authenticate(['read']), async (req, res) => {
           headers: { 'Authorization': `Bearer ${connection.access_token}`, 'Accept': 'application/fhir+json' }
         });
         const observations = (response.data.entry || []).map(e => e.resource);
-        const normalized = normalizeLabs(observations, connection.provider);
+        const normalized = await normalizeLabs(observations, connection.provider, { enableApiLookup: enrich });
         allLabs.push(...normalized);
       } catch (err) {
         logger.error('Error fetching labs', { connectionId: connection.id, error: err.message });
@@ -442,7 +474,7 @@ router.get('/v1/labs', authenticate(['read']), async (req, res) => {
     }
 
     let responseData;
-    if (deduplicate && connections.length > 1) {
+    if (dedupe && connections.length > 1) {
       const deduped = deduplicateLabs(allLabs);
       deduped.sort((a, b) => new Date(b.merged.date) - new Date(a.merged.date));
 
@@ -462,7 +494,9 @@ router.get('/v1/labs', authenticate(['read']), async (req, res) => {
         total: responseData.length,
         totalBeforeDedup: allLabs.length,
         sources: connections.map(c => c.provider),
-        deduplicated: deduplicate && connections.length > 1,
+        tier,
+        enriched: enrich,
+        deduplicated: dedupe && connections.length > 1,
         normalizedAt: new Date().toISOString()
       }
     });
@@ -475,16 +509,22 @@ router.get('/v1/labs', authenticate(['read']), async (req, res) => {
 /**
  * GET /api/v1/medications
  * Get normalized medications with optional deduplication
+ *
+ * Tier support:
+ * - Basic: Normalized data, local RxNorm lookups
+ * - Enriched: + API RxNorm lookups, drug classes, deduplication
  */
 router.get('/v1/medications', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const deduplicate = req.query.deduplicate !== 'false';
+    const tier = getDataTier(req);
+    const enrich = isEnrichmentEnabled(req);
+    const dedupe = isDeduplicationEnabled(req) && req.query.deduplicate !== 'false';
     const includeOriginals = req.query.include_originals === 'true';
     const status = req.query.status;
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false, tier } });
     }
 
     const allMeds = [];
@@ -496,7 +536,8 @@ router.get('/v1/medications', authenticate(['read']), async (req, res) => {
           headers: { 'Authorization': `Bearer ${connection.access_token}`, 'Accept': 'application/fhir+json' }
         });
         const medications = (response.data.entry || []).map(e => e.resource);
-        const normalized = normalizeMedications(medications, connection.provider);
+        // Use async normalization with API lookups for enriched tier
+        const normalized = await normalizeMedications(medications, connection.provider, { enableApiLookup: enrich });
         allMeds.push(...normalized);
       } catch (err) {
         logger.error('Error fetching medications', { connectionId: connection.id, error: err.message });
@@ -504,7 +545,7 @@ router.get('/v1/medications', authenticate(['read']), async (req, res) => {
     }
 
     let responseData;
-    if (deduplicate && connections.length > 1) {
+    if (dedupe && connections.length > 1) {
       const deduped = deduplicateMedications(allMeds);
       deduped.sort((a, b) => new Date(b.merged.prescribedDate) - new Date(a.merged.prescribedDate));
 
@@ -527,7 +568,9 @@ router.get('/v1/medications', authenticate(['read']), async (req, res) => {
         total: responseData.length,
         totalBeforeDedup: allMeds.length,
         sources: connections.map(c => c.provider),
-        deduplicated: deduplicate && connections.length > 1,
+        tier,
+        enriched: enrich,
+        deduplicated: dedupe && connections.length > 1,
         normalizedAt: new Date().toISOString()
       }
     });
@@ -540,16 +583,22 @@ router.get('/v1/medications', authenticate(['read']), async (req, res) => {
 /**
  * GET /api/v1/conditions
  * Get normalized conditions with optional deduplication
+ *
+ * Tier support:
+ * - Basic: Normalized data, local ICD-10 lookups
+ * - Enriched: + SNOMED API lookups, deduplication
  */
 router.get('/v1/conditions', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const deduplicate = req.query.deduplicate !== 'false';
+    const tier = getDataTier(req);
+    const enrich = isEnrichmentEnabled(req);
+    const dedupe = isDeduplicationEnabled(req) && req.query.deduplicate !== 'false';
     const includeOriginals = req.query.include_originals === 'true';
     const status = req.query.status;
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false, tier } });
     }
 
     const allConditions = [];
@@ -561,7 +610,7 @@ router.get('/v1/conditions', authenticate(['read']), async (req, res) => {
           headers: { 'Authorization': `Bearer ${connection.access_token}`, 'Accept': 'application/fhir+json' }
         });
         const conditions = (response.data.entry || []).map(e => e.resource);
-        const normalized = normalizeConditions(conditions, connection.provider);
+        const normalized = await normalizeConditions(conditions, connection.provider, { enableApiLookup: enrich });
         allConditions.push(...normalized);
       } catch (err) {
         logger.error('Error fetching conditions', { connectionId: connection.id, error: err.message });
@@ -569,7 +618,7 @@ router.get('/v1/conditions', authenticate(['read']), async (req, res) => {
     }
 
     let responseData;
-    if (deduplicate && connections.length > 1) {
+    if (dedupe && connections.length > 1) {
       const deduped = deduplicateConditions(allConditions);
 
       responseData = deduped.map(item => {
@@ -589,7 +638,9 @@ router.get('/v1/conditions', authenticate(['read']), async (req, res) => {
         total: responseData.length,
         totalBeforeDedup: allConditions.length,
         sources: connections.map(c => c.provider),
-        deduplicated: deduplicate && connections.length > 1,
+        tier,
+        enriched: enrich,
+        deduplicated: dedupe && connections.length > 1,
         normalizedAt: new Date().toISOString()
       }
     });
@@ -602,16 +653,22 @@ router.get('/v1/conditions', authenticate(['read']), async (req, res) => {
 /**
  * GET /api/v1/encounters
  * Get normalized encounters with optional deduplication
+ *
+ * Tier support:
+ * - Basic: Normalized data
+ * - Enriched: + deduplication
+ * Note: Encounters don't use external API lookups
  */
 router.get('/v1/encounters', authenticate(['read']), async (req, res) => {
   try {
     const connections = await epicDb.getConnections(req.user.id);
-    const deduplicate = req.query.deduplicate !== 'false';
+    const tier = getDataTier(req);
+    const dedupe = isDeduplicationEnabled(req) && req.query.deduplicate !== 'false';
     const includeOriginals = req.query.include_originals === 'true';
     const limit = parseInt(req.query.limit) || 50;
 
     if (!connections || connections.length === 0) {
-      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false } });
+      return res.json({ data: [], meta: { total: 0, sources: [], deduplicated: false, tier } });
     }
 
     const allEncounters = [];
@@ -631,7 +688,7 @@ router.get('/v1/encounters', authenticate(['read']), async (req, res) => {
     }
 
     let responseData;
-    if (deduplicate && connections.length > 1) {
+    if (dedupe && connections.length > 1) {
       const deduped = deduplicateEncounters(allEncounters);
       deduped.sort((a, b) => new Date(b.merged.startDate) - new Date(a.merged.startDate));
 
@@ -651,7 +708,8 @@ router.get('/v1/encounters', authenticate(['read']), async (req, res) => {
         total: responseData.length,
         totalBeforeDedup: allEncounters.length,
         sources: connections.map(c => c.provider),
-        deduplicated: deduplicate && connections.length > 1,
+        tier,
+        deduplicated: dedupe && connections.length > 1,
         normalizedAt: new Date().toISOString()
       }
     });
@@ -677,12 +735,14 @@ router.get('/v1/connection/:connectionId', authenticate(['read']), async (req, r
 
     const rawData = await fetchConnectionData(connection);
     const provider = connection.provider;
+    const enrich = isEnrichmentEnabled(req);
+    const tier = getDataTier(req);
 
     const patient = rawData.patient ? normalizePatient(rawData.patient, provider) : null;
-    const labs = normalizeLabs(rawData.observations, provider);
-    const medications = normalizeMedications(rawData.medications, provider);
-    const conditions = normalizeConditions(rawData.conditions, provider);
-    const encounters = normalizeEncounters(rawData.encounters, provider);
+    const labs = await normalizeLabs(rawData.observations, provider, { enableApiLookup: enrich });
+    const medications = await normalizeMedications(rawData.medications, provider, { enableApiLookup: enrich });
+    const conditions = await normalizeConditions(rawData.conditions, provider, { enableApiLookup: enrich });
+    const encounters = normalizeEncounters(rawData.encounters, provider, { enableApiLookup: enrich });
 
     if (!includeRaw) {
       if (patient) delete patient._raw;
@@ -699,6 +759,8 @@ router.get('/v1/connection/:connectionId', authenticate(['read']), async (req, r
         provider: connection.provider,
         displayName: getProviderDisplayName(connection.provider),
         lastSynced: connection.last_synced,
+        tier,
+        enriched: enrich,
         normalizedAt: new Date().toISOString()
       }
     });
