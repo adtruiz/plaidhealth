@@ -21,7 +21,6 @@ const poolConfig = {
 
 const sslMode = process.env.PGSSLMODE;
 const useSsl = Boolean(
-  process.env.RAILWAY_ENVIRONMENT ||
   process.env.DATABASE_REQUIRE_SSL === 'true' ||
   sslMode === 'require' ||
   sslMode === 'verify-ca' ||
