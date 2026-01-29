@@ -133,7 +133,7 @@ This is healthcare data. HIPAA violations can bankrupt a company.
 - [ ] Rate limiting per API key AND per IP
 
 **HIPAA Compliance**
-- [ ] Audit logging captures all PHI access (`apps/api/src/middleware/audit.js`)
+- [ ] Audit logging captures all PHI access (`apps/api/src/db.js` - `auditDb`)
 - [ ] Logs don't contain PHI
 - [ ] Data retention policies implemented
 - [ ] Access controls enforce minimum necessary
@@ -248,7 +248,7 @@ These files are the most critical. Read them line by line.
 1. `apps/api/src/middleware/auth.js` - All authentication logic
 2. `apps/api/src/routes/fhir.js` - The entire core API
 3. `apps/api/src/encryption.js` - Token encryption
-4. `apps/api/src/middleware/audit.js` - HIPAA audit logging
+4. `apps/api/src/db.js` - HIPAA audit logging (`auditDb`)
 5. `apps/api/src/code-lookup.js` - External API calls, caching
 
 ### Should Review (Quality/UX)

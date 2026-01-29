@@ -16,10 +16,24 @@ const poolConfig = {
   allowExitOnIdle: false,                                 // Keep pool alive
 
   // Statement timeout to prevent long-running queries
-  statement_timeout: 30000,                               // 30 second query timeout
-
-  ssl: { rejectUnauthorized: false }
+  statement_timeout: 30000                                // 30 second query timeout
 };
+
+const sslMode = process.env.PGSSLMODE;
+const useSsl = Boolean(
+  process.env.RAILWAY_ENVIRONMENT ||
+  process.env.DATABASE_REQUIRE_SSL === 'true' ||
+  sslMode === 'require' ||
+  sslMode === 'verify-ca' ||
+  sslMode === 'verify-full'
+);
+
+if (useSsl) {
+  poolConfig.ssl = {
+    rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== 'false',
+    ca: process.env.PGSSL_CA || undefined
+  };
+}
 
 if (databaseUrl) {
   poolConfig.connectionString = databaseUrl;

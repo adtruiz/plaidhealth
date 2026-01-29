@@ -295,10 +295,34 @@
   </div>
 
   <script>
+    let csrfToken = null;
+
+    function updateCsrfFromResponse(response) {
+      const token = response.headers.get('X-CSRF-Token');
+      if (token) {
+        csrfToken = token;
+      }
+    }
+
+    async function ensureCsrfToken() {
+      if (csrfToken) return csrfToken;
+      try {
+        const response = await fetch('/api/csrf');
+        if (response.ok) {
+          const data = await response.json();
+          csrfToken = data.csrf_token;
+        }
+      } catch (error) {
+        console.error('Error fetching CSRF token:', error);
+      }
+      return csrfToken;
+    }
+
     // Fetch user info
     async function loadUser() {
       try {
         const response = await fetch('/api/user');
+        updateCsrfFromResponse(response);
         if (!response.ok) {
           if (response.status === 401) {
             window.location.href = '/login.html';
@@ -328,6 +352,7 @@
     async function loadConnections() {
       try {
         const response = await fetch('/api/epic-connections');
+        updateCsrfFromResponse(response);
         if (!response.ok) throw new Error('Failed to load connections');
 
         const connections = await response.json();
@@ -395,8 +420,10 @@
       }
 
       try {
+        await ensureCsrfToken();
         const response = await fetch(`/api/epic-connections/${connectionId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
         });
 
         if (!response.ok) throw new Error('Failed to disconnect');

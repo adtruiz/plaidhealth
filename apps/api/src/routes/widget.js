@@ -7,6 +7,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { widgetDb } = require('../db');
+const { setEphemeral, getEphemeral, deleteEphemeral } = require('../redis');
 const { authenticate } = require('../middleware/auth');
 const { rateLimit } = require('../middleware/rate-limit');
 const { EVENT_TYPES, dispatchEvent } = require('../webhooks');
@@ -25,6 +26,7 @@ const router = express.Router();
 
 // Widget sessions storage (for tracking OAuth state back to widget)
 const widgetSessions = {};
+const WIDGET_SESSION_KEY_PREFIX = 'widget_session:';
 
 // Session expiration time: 1 hour
 const SESSION_EXPIRATION_MS = 60 * 60 * 1000;
@@ -153,20 +155,29 @@ router.get('/initiate/:provider', rateLimit('oauth'), async (req, res) => {
       apiUserId: tokenData.api_user_id
     };
 
-    // Add PKCE if provider requires it
+    // Add PKCE if provider requires it (generate once)
+    let pkce = null;
     if (config.usesPKCE) {
-      const pkce = generatePKCE();
+      pkce = generatePKCE();
       stateData.cv = pkce.codeVerifier;
     }
 
     const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
 
-    // Store widget session
-    widgetSessions[state] = {
+    // Store widget session (Redis first, in-memory fallback)
+    const widgetSession = {
       ...stateData,
       createdAt: Date.now(),
       expiresAt: Date.now() + SESSION_EXPIRATION_MS
     };
+    const storedInRedis = await setEphemeral(
+      `${WIDGET_SESSION_KEY_PREFIX}${state}`,
+      widgetSession,
+      SESSION_EXPIRATION_MS
+    );
+    if (!storedInRedis) {
+      widgetSessions[state] = widgetSession;
+    }
 
     // Build authorization URL
     const authUrl = new URL(config.authUrl);
@@ -176,9 +187,7 @@ router.get('/initiate/:provider', rateLimit('oauth'), async (req, res) => {
     authUrl.searchParams.append('scope', config.scope);
     authUrl.searchParams.append('state', state);
 
-    if (config.usesPKCE) {
-      const pkce = generatePKCE();
-      stateData.cv = pkce.codeVerifier;
+    if (config.usesPKCE && pkce) {
       widgetSessions[state].cv = pkce.codeVerifier;
       authUrl.searchParams.append('code_challenge', pkce.codeChallenge);
       authUrl.searchParams.append('code_challenge_method', 'S256');
@@ -301,3 +310,12 @@ setInterval(() => {
 // Export widget sessions for use in callback handler
 module.exports = router;
 module.exports.widgetSessions = widgetSessions;
+module.exports.getWidgetSession = async (state) => {
+  const fromRedis = await getEphemeral(`${WIDGET_SESSION_KEY_PREFIX}${state}`);
+  if (fromRedis) return fromRedis;
+  return widgetSessions[state] || null;
+};
+module.exports.deleteWidgetSession = async (state) => {
+  await deleteEphemeral(`${WIDGET_SESSION_KEY_PREFIX}${state}`);
+  delete widgetSessions[state];
+};

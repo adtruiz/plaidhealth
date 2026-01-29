@@ -33,7 +33,7 @@ const { refreshExpiringTokens } = require('./token-refresh');
 const logger = require('./logger');
 
 // Redis
-const { initializeRedis, isRedisConnected, shutdown: shutdownRedis } = require('./redis');
+const { initializeRedis, isRedisConnected, shutdown: shutdownRedis, setEphemeral, getEphemeral, deleteEphemeral } = require('./redis');
 
 // Config
 const { loadConfig } = require('./config');
@@ -94,15 +94,18 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:3002',
   'https://developer-portal-alpha.vercel.app',
-  'https://marketing-site-eight-tau.vercel.app',
-  /\.vercel\.app$/
+  'https://marketing-site-eight-tau.vercel.app'
 ];
+
+if (process.env.ALLOWED_ORIGINS) {
+  const extraOrigins = process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean);
+  allowedOrigins.push(...extraOrigins);
+}
 
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) return allowed.test(origin);
       return allowed === origin;
     });
     if (isAllowed) {
@@ -140,6 +143,51 @@ app.use(sessionMiddleware);
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+// ==================== CSRF Protection ====================
+
+const CSRF_HEADER = 'x-csrf-token';
+const CSRF_SESSION_KEY = 'csrfToken';
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function ensureCsrfToken(req) {
+  if (!req.session) return null;
+  if (!req.session[CSRF_SESSION_KEY]) {
+    req.session[CSRF_SESSION_KEY] = crypto.randomBytes(32).toString('hex');
+  }
+  return req.session[CSRF_SESSION_KEY];
+}
+
+function requireLogin(req, res, next) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Not logged in' });
+  }
+  return next();
+}
+
+function csrfProtection(req, res, next) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return next();
+  }
+
+  if (SAFE_METHODS.has(req.method)) {
+    const token = ensureCsrfToken(req);
+    if (token) res.setHeader('X-CSRF-Token', token);
+    return next();
+  }
+
+  const token = req.headers[CSRF_HEADER];
+  const expected = ensureCsrfToken(req);
+  if (!token) {
+    return res.status(403).json({ error: 'CSRF token required', code: 'CSRF_REQUIRED' });
+  }
+  if (!expected || token !== expected) {
+    return res.status(403).json({ error: 'Invalid CSRF token', code: 'CSRF_INVALID' });
+  }
+  return next();
+}
+
+app.use(csrfProtection);
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -186,6 +234,11 @@ const authSessions = {};
 const MAX_AUTH_SESSIONS = 10000;
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
+// OAuth state tracking for CSRF protection
+const oauthStates = {};
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const OAUTH_STATE_KEY_PREFIX = 'oauth_state:';
+
 // Clean up expired sessions
 setInterval(() => {
   const now = Date.now();
@@ -195,6 +248,12 @@ setInterval(() => {
     if (session.expiresAt && now > session.expiresAt) {
       delete authSessions[state];
       cleanedCount++;
+    }
+  }
+
+  for (const [state, session] of Object.entries(oauthStates)) {
+    if (session.expiresAt && now > session.expiresAt) {
+      delete oauthStates[state];
     }
   }
 
@@ -258,6 +317,12 @@ app.use((req, res, next) => {
 // Health check routes (no auth)
 app.use('/', healthRoutes);
 
+// CSRF token endpoint (session-authenticated)
+app.get('/api/csrf', requireLogin, (req, res) => {
+  const token = ensureCsrfToken(req);
+  res.json({ csrf_token: token });
+});
+
 // Developer Portal API
 app.use('/api/v1/developer', developerRoutes);
 app.use('/api/v1/contact', contactRoutes);
@@ -301,14 +366,7 @@ app.get('/auth/logout', (req, res) => {
 });
 
 // Provider OAuth initiation (dynamic for all providers)
-function requireLogin(req, res, next) {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not logged in' });
-  }
-  next();
-}
-
-function initiateOAuth(provider, req, res) {
+async function initiateOAuth(provider, req, res) {
   const config = getOAuthConfig(provider);
 
   if (!config || !config.clientId) {
@@ -323,14 +381,30 @@ function initiateOAuth(provider, req, res) {
   const randomId = crypto.randomBytes(16).toString('hex');
   const stateData = { id: randomId, provider };
 
+  let codeVerifier;
   let codeChallenge;
   if (config.usesPKCE) {
     const pkce = generatePKCE();
+    codeVerifier = pkce.codeVerifier;
     stateData.cv = pkce.codeVerifier;
     codeChallenge = pkce.codeChallenge;
   }
 
   const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
+  const oauthStatePayload = {
+    provider,
+    cv: codeVerifier,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + OAUTH_STATE_TTL_MS
+  };
+  const storedInRedis = await setEphemeral(
+    `${OAUTH_STATE_KEY_PREFIX}${state}`,
+    oauthStatePayload,
+    OAUTH_STATE_TTL_MS
+  );
+  if (!storedInRedis) {
+    oauthStates[state] = oauthStatePayload;
+  }
 
   const authUrl = new URL(config.authUrl);
   authUrl.searchParams.append('client_id', config.clientId);
@@ -356,9 +430,9 @@ function initiateOAuth(provider, req, res) {
 // Register OAuth routes for all providers
 getAllProviders().forEach(provider => {
   if (provider === 'meditech') {
-    app.get(`/auth/${provider}`, (req, res) => initiateOAuth(provider, req, res));
+    app.get(`/auth/${provider}`, (req, res) => { void initiateOAuth(provider, req, res); });
   } else {
-    app.get(`/auth/${provider}`, requireLogin, (req, res) => initiateOAuth(provider, req, res));
+    app.get(`/auth/${provider}`, requireLogin, (req, res) => { void initiateOAuth(provider, req, res); });
   }
 });
 
@@ -367,7 +441,7 @@ app.get('/auth/epic-demo', (req, res) => {
   if (!process.env.EPIC_CLIENT_ID || !process.env.REDIRECT_URI) {
     return res.status(500).send('Missing required environment variables');
   }
-  initiateOAuth('epic', req, res);
+  void initiateOAuth('epic', req, res);
 });
 
 // ==================== OAuth Callback Handler ====================
@@ -391,16 +465,30 @@ app.get('/callback', async (req, res) => {
 
   try {
     const stateData = JSON.parse(Buffer.from(state, 'base64url').toString());
-    codeVerifier = stateData.cv;
-    provider = stateData.provider || 'epic';
+    const storedWidgetSession = await widgetRoutes.getWidgetSession(state);
+    const storedState = await getEphemeral(`${OAUTH_STATE_KEY_PREFIX}${state}`) || oauthStates[state];
 
     if (stateData.widget) {
+      if (!storedWidgetSession || (storedWidgetSession.expiresAt && Date.now() > storedWidgetSession.expiresAt)) {
+        return res.status(400).send('Invalid or expired state parameter. Please try connecting again.');
+      }
       isWidgetFlow = true;
+      provider = storedWidgetSession.provider || stateData.provider || 'epic';
+      codeVerifier = storedWidgetSession.cv;
       widgetData = {
-        widgetToken: stateData.widgetToken,
-        widgetTokenId: stateData.widgetTokenId,
-        apiUserId: stateData.apiUserId
+        widgetToken: storedWidgetSession.widgetToken,
+        widgetTokenId: storedWidgetSession.widgetTokenId,
+        apiUserId: storedWidgetSession.apiUserId
       };
+      await widgetRoutes.deleteWidgetSession(state);
+    } else {
+      if (!storedState || (storedState.expiresAt && Date.now() > storedState.expiresAt)) {
+        return res.status(400).send('Invalid or expired state parameter. Please try connecting again.');
+      }
+      provider = storedState.provider || stateData.provider || 'epic';
+      codeVerifier = storedState.cv;
+      await deleteEphemeral(`${OAUTH_STATE_KEY_PREFIX}${state}`);
+      delete oauthStates[state];
     }
 
     // Non-PKCE providers don't need code verifier
@@ -526,83 +614,87 @@ app.use('/api/keys', apiKeyRoutes);
 // ==================== Demo Mode Routes ====================
 // These use authSessions for OAuth flows without user login
 
-function requireAuth(req, res, next) {
-  const { state } = req.query;
-  if (!state) return res.status(401).json({ error: 'Missing authentication state' });
+const isProduction = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
 
-  const session = authSessions[state];
-  if (!session || !session.accessToken) {
-    return res.status(401).json({ error: 'Not authenticated. Please log in again.' });
+if (!isProduction) {
+  function requireAuth(req, res, next) {
+    const { state } = req.query;
+    if (!state) return res.status(401).json({ error: 'Missing authentication state' });
+
+    const session = authSessions[state];
+    if (!session || !session.accessToken) {
+      return res.status(401).json({ error: 'Not authenticated. Please log in again.' });
+    }
+
+    if (!session.expiresAt || Date.now() > session.expiresAt) {
+      delete authSessions[state];
+      return res.status(401).json({ error: 'Access token expired. Please log in again.' });
+    }
+
+    req.session = session;
+    next();
   }
 
-  if (!session.expiresAt || Date.now() > session.expiresAt) {
-    delete authSessions[state];
-    return res.status(401).json({ error: 'Access token expired. Please log in again.' });
-  }
+  app.get('/api/patient', requireAuth, async (req, res) => {
+    try {
+      const response = await axios.get(
+        `${process.env.EPIC_FHIR_BASE_URL}/Patient/${req.session.patientId}`,
+        { headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' } }
+      );
+      res.json(response.data);
+    } catch (error) {
+      res.status(error.response?.status || 500).json({ error: 'Failed to fetch patient data' });
+    }
+  });
 
-  req.session = session;
-  next();
+  app.get('/api/observations', requireAuth, async (req, res) => {
+    try {
+      const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/Observation`, {
+        params: { patient: req.session.patientId, category: 'laboratory', _sort: '-date', _count: 20 },
+        headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
+      });
+      res.json(response.data);
+    } catch (error) {
+      res.status(error.response?.status || 500).json({ error: 'Failed to fetch observations' });
+    }
+  });
+
+  app.get('/api/medications', requireAuth, async (req, res) => {
+    try {
+      const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/MedicationRequest`, {
+        params: { patient: req.session.patientId, _sort: '-authoredon', _count: 20 },
+        headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
+      });
+      res.json(response.data);
+    } catch (error) {
+      res.status(error.response?.status || 500).json({ error: 'Failed to fetch medications' });
+    }
+  });
+
+  app.get('/api/conditions', requireAuth, async (req, res) => {
+    try {
+      const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/Condition`, {
+        params: { patient: req.session.patientId, _count: 20 },
+        headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
+      });
+      res.json(response.data);
+    } catch (error) {
+      res.status(error.response?.status || 500).json({ error: 'Failed to fetch conditions' });
+    }
+  });
+
+  app.get('/api/encounters', requireAuth, async (req, res) => {
+    try {
+      const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/Encounter`, {
+        params: { patient: req.session.patientId, _sort: '-date', _count: 20 },
+        headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
+      });
+      res.json(response.data);
+    } catch (error) {
+      res.status(error.response?.status || 500).json({ error: 'Failed to fetch encounters' });
+    }
+  });
 }
-
-app.get('/api/patient', requireAuth, async (req, res) => {
-  try {
-    const response = await axios.get(
-      `${process.env.EPIC_FHIR_BASE_URL}/Patient/${req.session.patientId}`,
-      { headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' } }
-    );
-    res.json(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).json({ error: 'Failed to fetch patient data' });
-  }
-});
-
-app.get('/api/observations', requireAuth, async (req, res) => {
-  try {
-    const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/Observation`, {
-      params: { patient: req.session.patientId, category: 'laboratory', _sort: '-date', _count: 20 },
-      headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
-    });
-    res.json(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).json({ error: 'Failed to fetch observations' });
-  }
-});
-
-app.get('/api/medications', requireAuth, async (req, res) => {
-  try {
-    const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/MedicationRequest`, {
-      params: { patient: req.session.patientId, _sort: '-authoredon', _count: 20 },
-      headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
-    });
-    res.json(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).json({ error: 'Failed to fetch medications' });
-  }
-});
-
-app.get('/api/conditions', requireAuth, async (req, res) => {
-  try {
-    const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/Condition`, {
-      params: { patient: req.session.patientId, _count: 20 },
-      headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
-    });
-    res.json(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).json({ error: 'Failed to fetch conditions' });
-  }
-});
-
-app.get('/api/encounters', requireAuth, async (req, res) => {
-  try {
-    const response = await axios.get(`${process.env.EPIC_FHIR_BASE_URL}/Encounter`, {
-      params: { patient: req.session.patientId, _sort: '-date', _count: 20 },
-      headers: { 'Authorization': `Bearer ${req.session.accessToken}`, 'Accept': 'application/fhir+json' }
-    });
-    res.json(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).json({ error: 'Failed to fetch encounters' });
-  }
-});
 
 // ==================== Error Handling ====================
 

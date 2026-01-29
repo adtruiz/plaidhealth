@@ -278,7 +278,7 @@ router.get('/health-records/unified', requireLogin, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in unified health records', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch unified health records', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch unified health records' });
   }
 });
 
@@ -393,7 +393,7 @@ router.get('/v1/health-records', authenticate(['read']), async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in normalized health records v1', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch normalized health records', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch normalized health records' });
   }
 });
 
@@ -432,7 +432,7 @@ router.get('/v1/patient', authenticate(['read']), async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in v1/patient', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch patient data', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch patient data' });
   }
 });
 
@@ -502,7 +502,7 @@ router.get('/v1/labs', authenticate(['read']), async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in v1/labs', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch labs', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch labs' });
   }
 });
 
@@ -576,7 +576,7 @@ router.get('/v1/medications', authenticate(['read']), async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in v1/medications', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch medications', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch medications' });
   }
 });
 
@@ -646,7 +646,7 @@ router.get('/v1/conditions', authenticate(['read']), async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in v1/conditions', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch conditions', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch conditions' });
   }
 });
 
@@ -715,7 +715,7 @@ router.get('/v1/encounters', authenticate(['read']), async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in v1/encounters', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch encounters', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch encounters' });
   }
 });
 
@@ -766,7 +766,7 @@ router.get('/v1/connection/:connectionId', authenticate(['read']), async (req, r
     });
   } catch (error) {
     logger.error('Error in v1/connection/:id', { error: error.message });
-    res.status(500).json({ error: 'Failed to fetch connection data', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch connection data' });
   }
 });
 
@@ -790,8 +790,7 @@ router.get('/connection/:connectionId/patient', requireLogin, async (req, res) =
   } catch (error) {
     logger.error('FHIR API error (Patient)', { error: error.message });
     res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch patient data',
-      details: error.response?.data || error.message
+      error: 'Failed to fetch patient data'
     });
   }
 });
@@ -819,8 +818,7 @@ router.get('/connection/:connectionId/medications', requireLogin, async (req, re
   } catch (error) {
     logger.error('FHIR API error (Medications)', { error: error.message });
     res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch medications',
-      details: error.response?.data || error.message
+      error: 'Failed to fetch medications'
     });
   }
 });
@@ -847,8 +845,7 @@ router.get('/connection/:connectionId/conditions', requireLogin, async (req, res
   } catch (error) {
     logger.error('FHIR API error (Conditions)', { error: error.message });
     res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch conditions',
-      details: error.response?.data || error.message
+      error: 'Failed to fetch conditions'
     });
   }
 });
@@ -877,8 +874,7 @@ router.get('/connection/:connectionId/labs', requireLogin, async (req, res) => {
   } catch (error) {
     logger.error('FHIR API error (Labs)', { error: error.message });
     res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch lab results',
-      details: error.response?.data || error.message
+      error: 'Failed to fetch lab results'
     });
   }
 });
@@ -906,8 +902,7 @@ router.get('/connection/:connectionId/encounters', requireLogin, async (req, res
   } catch (error) {
     logger.error('FHIR API error (Encounters)', { error: error.message });
     res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch encounters',
-      details: error.response?.data || error.message
+      error: 'Failed to fetch encounters'
     });
   }
 });
@@ -952,7 +947,7 @@ router.get('/charts/lab-trends', requireLogin, async (req, res) => {
     res.json(chartData);
   } catch (error) {
     logger.error('Error in lab trends chart', { error: error.message });
-    res.status(500).json({ error: 'Failed to generate lab trends', details: error.message });
+    res.status(500).json({ error: 'Failed to generate lab trends' });
   }
 });
 
@@ -990,7 +985,7 @@ router.get('/charts/medication-timeline', requireLogin, async (req, res) => {
     res.json(chartData);
   } catch (error) {
     logger.error('Error in medication timeline chart', { error: error.message });
-    res.status(500).json({ error: 'Failed to generate medication timeline', details: error.message });
+    res.status(500).json({ error: 'Failed to generate medication timeline' });
   }
 });
 
@@ -1052,7 +1047,7 @@ router.get('/charts/health-timeline', requireLogin, async (req, res) => {
     res.json(timelineData);
   } catch (error) {
     logger.error('Error in health timeline', { error: error.message });
-    res.status(500).json({ error: 'Failed to generate health timeline', details: error.message });
+    res.status(500).json({ error: 'Failed to generate health timeline' });
   }
 });
 
@@ -1090,7 +1085,7 @@ router.get('/charts/condition-stats', requireLogin, async (req, res) => {
     res.json(stats);
   } catch (error) {
     logger.error('Error in condition stats', { error: error.message });
-    res.status(500).json({ error: 'Failed to generate condition statistics', details: error.message });
+    res.status(500).json({ error: 'Failed to generate condition statistics' });
   }
 });
 
@@ -1176,7 +1171,7 @@ router.get('/charts/overview', requireLogin, async (req, res) => {
     res.json(overview);
   } catch (error) {
     logger.error('Error in overview stats', { error: error.message });
-    res.status(500).json({ error: 'Failed to generate overview statistics', details: error.message });
+    res.status(500).json({ error: 'Failed to generate overview statistics' });
   }
 });
 

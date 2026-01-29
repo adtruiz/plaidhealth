@@ -29,6 +29,29 @@ router.get('/health', (req, res) => {
 });
 
 /**
+ * GET /health/redis
+ * Redis health check - returns status and latency
+ */
+router.get('/health/redis', async (req, res) => {
+  try {
+    const redisStatus = await redisHealthCheck();
+    const statusCode = redisStatus.healthy ? 200 : 503;
+    res.status(statusCode).json({
+      status: redisStatus.healthy ? 'ok' : 'degraded',
+      redis: redisStatus,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.warn('Redis health check failed', { error: error.message });
+    res.status(503).json({
+      status: 'degraded',
+      redis: { healthy: false, error: error.message },
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * GET /ready
  * Readiness check - verifies database and Redis connections
  */

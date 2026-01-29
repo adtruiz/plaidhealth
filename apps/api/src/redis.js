@@ -117,6 +117,7 @@ async function shutdown() {
 // Cache helper functions
 const CACHE_PREFIX = 'cache:';
 const DEFAULT_TTL = 300; // 5 minutes
+const EPHEMERAL_PREFIX = 'ephemeral:';
 
 /**
  * Get cached value
@@ -211,5 +212,66 @@ module.exports = {
   cacheGet,
   cacheSet,
   cacheDelete,
-  cacheDeletePattern
+  cacheDeletePattern,
+  setEphemeral,
+  getEphemeral,
+  deleteEphemeral
 };
+
+/**
+ * Store short-lived JSON value
+ * @param {string} key - Ephemeral key
+ * @param {any} value - JSON-serializable value
+ * @param {number} ttlMs - Time to live in milliseconds
+ * @returns {Promise<boolean>} Success status
+ */
+async function setEphemeral(key, value, ttlMs) {
+  if (!isRedisConnected()) return false;
+  const ttlSeconds = Math.max(1, Math.floor(ttlMs / 1000));
+
+  try {
+    await redisClient.setEx(
+      `${EPHEMERAL_PREFIX}${key}`,
+      ttlSeconds,
+      JSON.stringify(value)
+    );
+    return true;
+  } catch (error) {
+    logger.warn('Ephemeral set error', { key, error: error.message });
+    return false;
+  }
+}
+
+/**
+ * Get short-lived JSON value
+ * @param {string} key - Ephemeral key
+ * @returns {Promise<any|null>} Stored value or null
+ */
+async function getEphemeral(key) {
+  if (!isRedisConnected()) return null;
+
+  try {
+    const value = await redisClient.get(`${EPHEMERAL_PREFIX}${key}`);
+    return value ? JSON.parse(value) : null;
+  } catch (error) {
+    logger.warn('Ephemeral get error', { key, error: error.message });
+    return null;
+  }
+}
+
+/**
+ * Delete short-lived JSON value
+ * @param {string} key - Ephemeral key
+ * @returns {Promise<boolean>} Success status
+ */
+async function deleteEphemeral(key) {
+  if (!isRedisConnected()) return false;
+
+  try {
+    await redisClient.del(`${EPHEMERAL_PREFIX}${key}`);
+    return true;
+  } catch (error) {
+    logger.warn('Ephemeral delete error', { key, error: error.message });
+    return false;
+  }
+}

@@ -1,6 +1,6 @@
 # PlaidHealth - Project Status
 
-**Last Updated:** January 28, 2026
+**Last Updated:** January 29, 2026
 
 ## Project Overview
 
@@ -191,6 +191,16 @@ plaidhealth/
    - [ ] Submit contact form
    - [ ] Verify database storage
    - [ ] Rate limiting works
+
+5. **Go-Live Configuration (Production)**
+   - [ ] Set `REDIS_URL`, `SESSION_SECRET`, `ALLOWED_ORIGINS`
+   - [ ] Set database TLS vars (`PGSSLMODE`, `PGSSL_CA`, `PGSSL_REJECT_UNAUTHORIZED`)
+   - [ ] Verify `/health`, `/health/redis`, `/ready` in production
+   - [ ] Verify CSRF flow (GET `/api/csrf` + POST/DELETE with `X-CSRF-Token`)
+
+### Verification Notes
+- API tests (Jest) passing locally on January 29, 2026
+- TypeScript checks passing for developer portal + marketing site on January 29, 2026
 
 ### Medium Priority
 

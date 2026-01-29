@@ -8,6 +8,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { userDb, apiKeyDb } = require('../db');
+const { setEphemeral, getEphemeral, deleteEphemeral } = require('../redis');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -89,20 +90,22 @@ function generateSessionToken() {
 // In-memory session store (use Redis in production)
 const sessions = new Map();
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DEV_SESSION_KEY_PREFIX = 'dev_session:';
 
 /**
  * Middleware: Authenticate developer via session token
  */
-function authenticateDeveloper(req, res, next) {
+async function authenticateDeveloper(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
   }
 
   const token = authHeader.substring(7);
-  const session = sessions.get(token);
+  const session = await getEphemeral(`${DEV_SESSION_KEY_PREFIX}${token}`) || sessions.get(token);
 
   if (!session || Date.now() > session.expiresAt) {
+    await deleteEphemeral(`${DEV_SESSION_KEY_PREFIX}${token}`);
     sessions.delete(token);
     return res.status(401).json({ error: 'Session expired', code: 'SESSION_EXPIRED' });
   }
@@ -162,10 +165,14 @@ router.post('/register', async (req, res) => {
 
     // Auto-login: create session
     const token = generateSessionToken();
-    sessions.set(token, {
+    const sessionPayload = {
       user: { id: result.id, email: result.email, name: result.name, company: result.company },
       expiresAt: Date.now() + SESSION_TTL_MS
-    });
+    };
+    const storedInRedis = await setEphemeral(`${DEV_SESSION_KEY_PREFIX}${token}`, sessionPayload, SESSION_TTL_MS);
+    if (!storedInRedis) {
+      sessions.set(token, sessionPayload);
+    }
 
     res.status(201).json({
       user: {
@@ -228,10 +235,14 @@ router.post('/login', async (req, res) => {
 
     // Create session
     const token = generateSessionToken();
-    sessions.set(token, {
+    const sessionPayload = {
       user: { id: user.id, email: user.email, name: user.name, company: user.company },
       expiresAt: Date.now() + SESSION_TTL_MS
-    });
+    };
+    const storedInRedis = await setEphemeral(`${DEV_SESSION_KEY_PREFIX}${token}`, sessionPayload, SESSION_TTL_MS);
+    if (!storedInRedis) {
+      sessions.set(token, sessionPayload);
+    }
 
     logger.info('Developer logged in', { userId: user.id, email });
 
@@ -255,7 +266,8 @@ router.post('/login', async (req, res) => {
  * POST /api/v1/developer/logout
  * Invalidate session
  */
-router.post('/logout', authenticateDeveloper, (req, res) => {
+router.post('/logout', authenticateDeveloper, async (req, res) => {
+  await deleteEphemeral(`${DEV_SESSION_KEY_PREFIX}${req.sessionToken}`);
   sessions.delete(req.sessionToken);
   res.json({ success: true });
 });
